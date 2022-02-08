@@ -1,0 +1,4 @@
+name: Nominal-Sets
+depend: standard-library
+include: src
+
