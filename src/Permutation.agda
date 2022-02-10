@@ -1,3 +1,8 @@
+------------------------------------------------------------
+-- Nominal Sets
+--
+-- Permutations on a setoid form the Symmetry Group.
+------------------------------------------------------------
 module Permutation where
 
 open import Level
