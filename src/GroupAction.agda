@@ -1,7 +1,8 @@
 ------------------------------------------------------------
 -- Nominal Sets
 --
--- Action of a Group in a Set.
+-- Action of a Group in a Set. G-Sets and Equivariant
+-- functions.
 ------------------------------------------------------------
 open import Level
 open import Algebra hiding (Inverse)
@@ -27,21 +28,50 @@ module G-Action {ℓ ℓ' cℓ ℓ''} (A : Setoid ℓ ℓ') (G : Group cℓ ℓ'
   record IsAction
     (⊙ₐ : Func (setoid G ×ₛ A) A) : Set (ℓ ⊔ ℓ' ⊔ cℓ ⊔ ℓ'') where
 
+    infix 8 _∙ₐ_
     _≈A_ = _≈_ A
+    _≈G_ = _≈_ G
     _∙ₐ_ : Carrier G → Carrier A → Carrier A
     g ∙ₐ x = Func.f ⊙ₐ (g , x)
 
-    field
-      idₐ : ∀ x → (ε G ∙ₐ x) ≈A x
-      ∘ₐ : ∀ g g' x → (g' ∙ₐ (g ∙ₐ x)) ≈A ((_∙_ G g g') ∙ₐ x)
-
-  record Action : Set (ℓ ⊔ ℓ' ⊔ cℓ ⊔ ℓ'') where
     open module G = Group G
     field
-      ⊙ₐ : Func (G.setoid ×ₛ A) A
-      isAction : IsAction ⊙ₐ
+      idₐ : ∀ x → (G.ε ∙ₐ x) ≈A x
+      ∘ₐ : ∀ g g' x → (g' ∙ₐ (g ∙ₐ x)) ≈A ((g G.∙ g') ∙ₐ x)
 
+    congˡ : ∀ {g} {g'} x → g ≈G g' → (g ∙ₐ x) ≈A (g' ∙ₐ x)
+    congˡ x g≈g' = Func.cong ⊙ₐ (g≈g' , refl A)
+
+  record Action : Set (ℓ ⊔ ℓ' ⊔ cℓ ⊔ ℓ'') where
+    G-setoid = Group.setoid G
+    field
+      ⊙ₐ : Func (G-setoid ×ₛ A) A
+      isAction : IsAction ⊙ₐ
     open IsAction isAction public
+
+    infix 9 _′
+    _′ = G._⁻¹
+    open ≈-Reasoning A
+
+    _∘ₐ_-inv-idˡ : ∀ g x → (g ′ ∙ₐ (g ∙ₐ x)) ≈A x
+    _∘ₐ_-inv-idˡ g x = begin
+      (g ′ ∙ₐ (g ∙ₐ x))
+      ≈⟨ ∘ₐ g (g ′) x  ⟩
+      ((g G.∙ g ′) ∙ₐ x)
+      ≈⟨ congˡ x (G.inverseʳ g) ⟩
+      (G.ε ∙ₐ x)
+      ≈⟨ idₐ x ⟩
+      x ∎
+
+    _∘ₐ_-inv-idʳ : ∀ g x → (g ∙ₐ (g ′ ∙ₐ x)) ≈A x
+    _∘ₐ_-inv-idʳ g x = begin
+      (g ∙ₐ (g ′ ∙ₐ x))
+      ≈⟨ ∘ₐ (g ′) g x  ⟩
+      ((g ′ G.∙ g ) ∙ₐ x)
+      ≈⟨ congˡ x (G.inverseˡ g) ⟩
+      (G.ε ∙ₐ x)
+      ≈⟨ idₐ x ⟩
+      x ∎
 
 open G-Action
 
@@ -55,10 +85,21 @@ IsEquivariant : ∀ {ℓ₁ ℓ₂ ℓ₃ ℓ₄} {cℓ ℓ}
   {G : Group cℓ ℓ} →
   {A : Setoid ℓ₁ ℓ₂} →
   {B : Setoid ℓ₃ ℓ₄} →
-  (⊙-A : Action A G) →
-  (⊙-B : Action B G) →
+  (∙A : Action A G) →
+  (∙B : Action B G) →
   (F : Func A B) → Set (ℓ₁ ⊔ ℓ₄ ⊔ cℓ)
-IsEquivariant {B = B} ⊙-A ⊙-B F = ∀ x g → F.f ( g ⊙-A.∙ₐ x) ≈B (g ⊙-B.∙ₐ (F.f x))
-  where open module ⊙-A = Action ⊙-A ; open module ⊙-B = Action ⊙-B
+IsEquivariant {B = B} ∙A ∙B F = ∀ x g → F.f ( g ∙A.∙ₐ x) ≈B (g ∙B.∙ₐ (F.f x))
+  where open module ∙A = Action ∙A
+        open module ∙B = Action ∙B
         open module F = Func F
         _≈B_ = _≈_ B
+
+record Equivariant {ℓ₁ ℓ₂ ℓ₃ ℓ₄} {cℓ ℓ}
+  {G : Group cℓ ℓ}
+  {A : G-Set {ℓ₁} {ℓ₂} G}
+  {B : G-Set {ℓ₃} {ℓ₄} G} : Set (suc (ℓ₁ ⊔ ℓ₂ ⊔ ℓ₃ ⊔ ℓ₄ ⊔ cℓ)) where
+
+  open G-Set
+  field
+    F : Func (set A) (set B)
+    isEquiv : IsEquivariant (act A) (act B) F
