@@ -15,7 +15,10 @@ open import Function.Construct.Composition renaming (inverse to _∘ₚ_)
 open import Function.Construct.Identity renaming (inverse to idₚ)
 open import Function.Construct.Symmetry renaming (inverse to _⁻¹)
 
-module Symmetry-Group {ℓ ℓ' : Level} (A-setoid : Setoid ℓ ℓ') where
+variable
+  ℓ ℓ' : Level
+
+module Symmetry-Group (A-setoid : Setoid ℓ ℓ') where
   open IsEquivalence
   open Inverse
   open Setoid hiding (_≈_)
