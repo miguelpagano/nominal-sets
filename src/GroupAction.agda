@@ -156,6 +156,22 @@ GSet-× A B = record
   where open module ∙A = Action (act A)
         open module ∙B = Action (act B)
 
+-- Projections
+π₁ : Equivariant (GSet-× A B) A
+π₁ = {!!}
+
+π₂ : Equivariant (GSet-× A B) B
+π₂ = {!!}
+
+-- Product morphism
+⟨_,_⟩ : Equivariant C A → Equivariant C B → Equivariant C (GSet-× A B)
+⟨ H , K ⟩ = {!!}
+
+open Equivariant
+
+-- Equalities
+-- eq₁ : (H : Equivariant C A) → (K : Equivariant C B) → ⟨ H , K ⟩ ∘G π₁ = H
+
 -- Discrete G-Set
 Δ : (A : Setoid ℓ₁ ℓ₂) → G-Set G
 Δ A = record
