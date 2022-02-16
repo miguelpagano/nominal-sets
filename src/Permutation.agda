@@ -210,3 +210,28 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     ; cong₂ = transp-respects-≈ a b
     ; inverse = transp-involutive a b , transp-involutive a b
     }
+
+  open Inverse
+  perm-injective : (π : Perm) → Injective _≈_ _≈_ (f π)
+  perm-injective π {c} {d} eq = begin
+    c
+    ≈⟨ sym (Inverse.inverseʳ π c) ⟩
+    f⁻¹ π (f π c)
+    ≈⟨ cong₂ π eq ⟩
+    f⁻¹ π (f π d)
+    ≈⟨ Inverse.inverseʳ π d ⟩
+    d ∎
+    where open ≈-Reasoning setoid
+    
+  perm-injective' : (π : Perm) → Injective _≉_ _≉_ (f π)
+  perm-injective' π {c} {d} neq c=d = ⊥-elim (neq (cong₁ π c=d))
+
+  transp-distributive-perm : ∀ (π : Perm) a b c → transp (f π a) (f π b) (f π c) ≈ (f π ∘ transp a b) c
+  transp-distributive-perm π a b c = transp-induction (λ x → x ≈ (f π ∘ transp a b) c) (f π a) (f π b) (f π c)
+    (λ πc=πa → cong₁ π (sym (reflexive (transp-eq₁ a b c (perm-injective π πc=πa)))))
+    (λ πc≠πa πc=πb → cong₁ π (sym (reflexive (transp-eq₂ a b c (perm-injective' π πc≠πa) (perm-injective π πc=πb)))))
+    (λ πc≠πa πc≠πb → cong₁ π (sym (reflexive (transp-eq₃ a b c (perm-injective' π πc≠πa) (perm-injective' π πc≠πb)))))
+
+  transp-distributive : ∀ a b c d e →
+    transp a b (transp c d e) ≈ transp (transp a b c) (transp a b d) (transp a b e)
+  transp-distributive a b c d e = sym (transp-distributive-perm (⟦ Swap a b ⟧) c d e)
