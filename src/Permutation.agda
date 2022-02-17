@@ -93,45 +93,45 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   open import Data.Empty
 
   transp : (a b c : Carrier) → Carrier
-  transp a b c with c ≟ a
-  ... | yes _ = b
-  ... | no _ with c ≟ b
-  ... | yes _ = a
-  ... | no _ = c
+  transp a b c with does (c ≟ a)
+  ... | true = b
+  ... | false with does (c ≟ b)
+  ... | true = a
+  ... | false = c
 
   transp-eq₁ : ∀ a b c → c ≈ a → transp a b c ≡ b
   transp-eq₁ a b c c=a with c ≟ a
   ... | yes p = _≡_.refl
   ... | no c≠a = ⊥-elim (c≠a c=a)
 
-  transp-eq₂ : ∀ a b c → ¬ c ≈ a → c ≈ b → transp a b c ≡ a
+  transp-eq₂ : ∀ a b c → c ≉ a → c ≈ b → transp a b c ≡ a
   transp-eq₂ a b c c≠a c=b with c ≟ a
   ... | yes c=a = ⊥-elim (c≠a c=a)
   ... | no c≠a with c ≟ b
   ... | yes c=b = _≡_.refl
   ... | no c≠b = ⊥-elim (c≠b c=b)
 
-  transp-eq₃ : ∀ a b c → ¬ c ≈ a → ¬ c ≈ b → transp a b c ≡ c
+  transp-eq₃ : ∀ a b c → c ≉ a → c ≉ b → transp a b c ≡ c
   transp-eq₃ a b c c≠a c≠b with c ≟ a
   ... | yes c=a = ⊥-elim (c≠a c=a)
   ... | no c≠a with c ≟ b
   ... | no _ = _≡_.refl
   ... | yes c=b = ⊥-elim (c≠b c=b)
 
-  ≉-sym : ∀ {a b} → ¬ a ≈ b → ¬ b ≈ a
+  ≉-sym : ∀ {a b} → a ≉ b → b ≉ a
   ≉-sym a≠b b=a = ⊥-elim (a≠b (sym b=a))
 
-  ≉-resp-≈₁ : ∀ {a b c} → a ≈ b → ¬ b ≈ c → ¬ a ≈ c
+  ≉-resp-≈₁ : ∀ {a b c} → a ≈ b → b ≉ c → a ≉ c
   ≉-resp-≈₁ a=b b≠c a=c = ⊥-elim (b≠c (trans (sym a=b) a=c))
 
-  ≉-resp-≈₂ : ∀ {a b c} → b ≈ c → ¬ a ≈ b → ¬ a ≈ c
+  ≉-resp-≈₂ : ∀ {a b c} → b ≈ c → a ≉ b → a ≉ c
   ≉-resp-≈₂ b=c a≠b a=c = ⊥-elim (a≠b (trans a=c (sym b=c)))
 
   transp-induction : ∀ {ℓP} (P : Carrier → Set ℓP) →
                      ∀ a b c →
                      (c ≈ a → P b) →
-                     (¬ c ≈ a → c ≈ b → P a) →
-                     (¬ c ≈ a → ¬ c ≈ b → P c) →
+                     (c ≉ a → c ≈ b → P a) →
+                     (c ≉ a → c ≉ b → P c) →
                      P (transp a b c)
   transp-induction P a b c P-eq1 P-eq2 P-eq3 with a ≟ c
   ... | yes a=c rewrite transp-eq₁ a b c (sym a=c) = P-eq1 (sym a=c)
@@ -151,8 +151,8 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
      (λ _ b=c _ → sym b=c)
      (λ c≠a _ c=a → ⊥-elim (c≠a c=a))
 
-  transp-inv₂ : ∀ a b c → ¬ transp a b c ≈ a → transp a b c ≈ b → a ≈ c
-  transp-inv₂ a b c = transp-induction (λ x → ¬ (x ≈ a) → x ≈ b → a ≈ c) a b c
+  transp-inv₂ : ∀ a b c → transp a b c ≉ a → transp a b c ≈ b → a ≈ c
+  transp-inv₂ a b c = transp-induction (λ x → x ≉ a → x ≈ b → a ≈ c) a b c
     (λ c=a _ _ → sym c=a)
     (λ _ _ a≠a _ → ⊥-elim (a≠a refl))
     (λ _ c≠b _ c=b → ⊥-elim (c≠b c=b))
@@ -163,8 +163,8 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     (λ c≠a c=b a=b → trans a=b (sym c=b))
     (λ c≠a c≠b c=b → ⊥-elim (c≠b c=b))
 
-  transp-inv₃ : ∀ a b c → ¬ transp a b c ≈ a → ¬ transp a b c ≈ b → transp a b c ≈ c
-  transp-inv₃ a b c = transp-induction (λ x → ¬ (x ≈ a) → ¬ x ≈ b → x ≈ c) a b c
+  transp-inv₃ : ∀ a b c → transp a b c ≉ a → transp a b c ≉ b → transp a b c ≈ c
+  transp-inv₃ a b c = transp-induction (λ x → x ≉ a → x ≉ b → x ≈ c) a b c
     (λ _ _ b≠b → ⊥-elim (b≠b refl))
     (λ _ _ a≠a → ⊥-elim (a≠a refl))
     (λ _ _ _ _ → refl)
@@ -183,22 +183,11 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     (transp-inv₂ a b c)
     (transp-inv₃ a b c)
 
-  transp-respects-≈ : ∀ a b {c} {d} → c ≈ d → transp a b c ≈ transp a b d
+  transp-respects-≈ : ∀ a b → (transp a b) Preserves _≈_ ⟶ _≈_
   transp-respects-≈ a b {c} {d} c≈d = transp-induction (transp a b c ≈_) a b d
     (λ d=a → reflexive (transp-eq₁ a b c (trans c≈d d=a)))
     (λ d≠a d=b → reflexive (transp-eq₂ a b c (≉-resp-≈₁ c≈d d≠a) (trans c≈d d=b)))
     (λ d≠a d≠b → trans (reflexive (transp-eq₃ a b c ((≉-resp-≈₁ c≈d d≠a)) ((≉-resp-≈₁ c≈d d≠b)))) c≈d)
-
-  transp-injective : ∀ a b → Injective _≈_ _≈_  (transp a b)
-  transp-injective a b {c} {d} eq = begin
-    c
-    ≈⟨ sym (transp-involutive a b c) ⟩
-    transp a b (transp a b c)
-    ≈⟨ transp-respects-≈ a b eq ⟩
-    transp a b (transp a b d)
-    ≈⟨ transp-involutive a b d ⟩
-    d ∎
-    where open ≈-Reasoning setoid
 
   ⟦_⟧ : FinPerm → Perm
   ⟦ Id ⟧ = idₚ setoid
@@ -222,9 +211,12 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     ≈⟨ Inverse.inverseʳ π d ⟩
     d ∎
     where open ≈-Reasoning setoid
-    
+
   perm-injective' : (π : Perm) → Injective _≉_ _≉_ (f π)
   perm-injective' π {c} {d} neq c=d = ⊥-elim (neq (cong₁ π c=d))
+
+  transp-injective : ∀ a b → Injective _≈_ _≈_  (transp a b)
+  transp-injective a b = perm-injective ⟦ Swap a b ⟧
 
   transp-distributive-perm : ∀ (π : Perm) a b c → transp (f π a) (f π b) (f π c) ≈ (f π ∘ transp a b) c
   transp-distributive-perm π a b c = transp-induction (λ x → x ≈ (f π ∘ transp a b) c) (f π a) (f π b) (f π c)
@@ -234,4 +226,68 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
 
   transp-distributive : ∀ a b c d e →
     transp a b (transp c d e) ≈ transp (transp a b c) (transp a b d) (transp a b e)
-  transp-distributive a b c d e = sym (transp-distributive-perm (⟦ Swap a b ⟧) c d e)
+  transp-distributive a b c d e = sym (transp-distributive-perm ⟦ Swap a b ⟧ c d e)
+
+  _⁻¹ᵖ : (p : FinPerm) → ∃ (λ q → (⟦ p ⟧ ⁻¹) ≈ₚ ⟦ q ⟧)
+  Id ⁻¹ᵖ = Id , λ _ → refl
+  Comp p q ⁻¹ᵖ with  p ⁻¹ᵖ | q ⁻¹ᵖ
+  ... | p' , eqp | q' , eqq = Comp q' p' , λ x →
+      begin
+      f⁻¹ ⟦ p ⟧ (f⁻¹ ⟦ q ⟧ x)
+      ≈⟨ cong₂ ⟦ p ⟧ (eqq x) ⟩
+      f⁻¹ ⟦ p ⟧ (f ⟦ q' ⟧ x)
+      ≈⟨ eqp (f ⟦ q' ⟧ x) ⟩
+      (f ⟦ p' ⟧ (f ⟦ q' ⟧ x)) ∎
+    where open ≈-Reasoning setoid
+  Swap a b ⁻¹ᵖ = (Swap a b) , (λ x → refl)
+
+  PERM : Set (ℓ ⊔ ℓ')
+  PERM = Σ[ p ∈ Perm ] (∃ (λ q → ( p ≈ₚ ⟦ q ⟧)))
+
+  ID : PERM
+  ID = idₚ setoid , Id , λ _ → refl
+
+  _⁻¹P : Op₁ PERM
+  (p , code , eq) ⁻¹P with code ⁻¹ᵖ
+  ... | code' , eq' = p ⁻¹
+                    , code'
+                    , λ x → begin
+    f⁻¹ p x
+    ≈⟨ cong-⁻¹ {p} {⟦ code ⟧} eq x ⟩
+    f⁻¹ ⟦ code ⟧ x
+    ≈⟨ eq' x ⟩
+    f ⟦ code' ⟧ x ∎
+    where open ≈-Reasoning setoid
+
+  _∘P_ : Op₂ PERM
+  (p , code , eq) ∘P (q , code' , eq') =
+      p ∘ₚ q
+    , Comp code code'
+    , λ x → trans (cong₁ q (eq x)) (eq' (f ⟦ code ⟧ x))
+
+  Perm-A : Group (ℓ ⊔ ℓ') (ℓ ⊔ ℓ')
+  Perm-A = record
+            { Carrier = PERM
+            ; _≈_ = λ P Q → proj₁ P ≈ₚ proj₁ Q
+            ; _∙_ = _∘P_
+            ; ε = ID
+            ; _⁻¹ = _⁻¹P
+            ; isGroup = record {
+                isMonoid = record {
+                  isSemigroup = record {
+                  isMagma = record {
+                    isEquivalence = record {
+                        refl = λ x → refl
+                      ; sym = λ x x₁ → {!!}
+                      ; trans = {!!}
+                    } ;
+                    ∙-cong = {!!}
+                  }
+                  ; assoc = {!!}
+                  }
+                ; identity = {!!} , {!!}
+                }
+              ; inverse = {!!} , {!!}
+              ; ⁻¹-cong = {!!}
+              }
+            }
