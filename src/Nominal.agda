@@ -37,14 +37,15 @@ module Nominal (A-setoid : DecSetoid ℓ ℓ') where
     where
     open GroupAction.G-Set
     open GroupAction.G-Action.Action
-    open Setoid
+    open Setoid hiding (_≉_)
     open Inverse
     open SetoidPredicate
     open Func
-    _≈A_ : Rel (Carrier A-setoid) ℓ'
+
     _≈A_ = _≈_ A-setoid
+    _≉A_ = _≉_ A-setoid
     _≈X_ = _≈_ (set X-set)
     _∘ₓ_ : PERM → Carrier (set X-set) → Carrier (set X-set)
     p ∘ₓ a = (f ∘ ⊙ₐ) (act X-set) (p , a)
     supp_ : (x : Carrier (set X-set)) → Set (ℓ ⊔ ℓ' ⊔ ℓP ⊔ ℓx')
-    supp x = ∀ (π : PERM) → (∀ a → predicate P a → f (proj₁ π) a ≈A a) → (π ∘ₓ x) ≈X x
+    supp x = ∀ (π : PERM) → (∀ a → predicate P a → a ∉ₐ (proj₁ π)) → (π ∘ₓ x) ≈X x

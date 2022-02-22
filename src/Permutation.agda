@@ -6,6 +6,7 @@
 module Permutation where
 
 open import Level
+open import Data.List.Relation.Unary.Any
 open import Data.Product hiding (map)
 open import Algebra hiding (Inverse)
 open import Function
@@ -210,6 +211,8 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
 
   open import Data.List
   open import Data.List.Membership.DecSetoid A-setoid
+  import List-Extra
+  open List-Extra.Extra setoid
 
   ⟦_⟧ : FinPerm → Perm
   ⟦ Id ⟧ = idₚ setoid
@@ -294,7 +297,27 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
           ≈⟨ reflexive (transp-eq₃ e≠a e≠c) ⟩
           e ∎
 
+  _≡A_ = _≡_ {A = Carrier}
+  _∈ₐ_ : Carrier → Perm → Set ℓ'
+  a ∈ₐ π = f π a ≉ a
+  _∉ₐ_ : Carrier → Perm → Set ℓ
+  a ∉ₐ π = f π a ≡A a
 
+  atoms : FinPerm → List Carrier
+  atoms Id = []
+  atoms (Comp p q) = atoms p ++ atoms q
+  atoms (Swap a b) = a ∷ b ∷ []
+
+  ∉-atoms-∉ₐ : ∀ q a → a ∉ atoms q → a ∉ₐ ⟦ q ⟧
+  ∉-atoms-∉ₐ Id a a∉at = _≡_.refl
+  ∉-atoms-∉ₐ (Swap b c) a a∉at =
+    transp-eq₃ (∉-∷⁼ (Any.here refl) a∉at)
+               (∉-∷⁼ (Any.there (Any.here refl)) a∉at)
+  ∉-atoms-∉ₐ (Comp p q) a a∉at = goal
+    where
+    a∉ₐp = ∉-atoms-∉ₐ p a (∉-++⁻ˡ (atoms p) a∉at)
+    goal : a ∉ₐ (⟦ p ⟧ ∘ₚ ⟦ q ⟧)
+    goal rewrite a∉ₐp = ∉-atoms-∉ₐ q a (∉-++⁻ʳ (atoms p) a∉at)
 
   _⁻¹ᵖ : (p : FinPerm) → ∃ (λ q → (⟦ p ⟧ ⁻¹) ≈ₚ ⟦ q ⟧)
   Id ⁻¹ᵖ = Id , λ _ → refl
