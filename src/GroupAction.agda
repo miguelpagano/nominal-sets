@@ -1,3 +1,4 @@
+{-# OPTIONS --allow-unsolved-metas #-}
 ------------------------------------------------------------
 -- Nominal Sets
 --
@@ -22,7 +23,8 @@ import Relation.Binary.Reasoning.Setoid as ≈-Reasoning
 open Setoid
 open Group
 
-variable
+private
+ variable
   cℓ ℓ ℓ₁ ℓ₂ ℓ₃ ℓ₄ ℓ₅ ℓ₆ : Level
 
 module G-Action (A : Setoid ℓ₁ ℓ₂) (G : Group cℓ ℓ) where
@@ -31,8 +33,9 @@ module G-Action (A : Setoid ℓ₁ ℓ₂) (G : Group cℓ ℓ) where
     (⊙ₐ : Func (setoid G ×ₛ A) A) : Set (ℓ₁ ⊔ ℓ₂ ⊔ cℓ ⊔ ℓ) where
 
     infix 8 _∙ₐ_
-    _≈A_ = _≈_ A
-    _≈G_ = _≈_ G
+    private
+      _≈A_ = _≈_ A
+      _≈G_ = _≈_ G
     _∙ₐ_ : Carrier G → Carrier A → Carrier A
     g ∙ₐ x = Func.f ⊙ₐ (g , x)
 
@@ -50,6 +53,9 @@ module G-Action (A : Setoid ℓ₁ ℓ₂) (G : Group cℓ ℓ) where
       ⊙ₐ : Func (G-setoid ×ₛ A) A
       isAction : IsAction ⊙ₐ
     open IsAction isAction public
+    private
+      _≈A_ = _≈_ A
+      _≈G_ = _≈_ G
 
     infix 9 _′
     _′ = G._⁻¹
@@ -76,11 +82,11 @@ module G-Action (A : Setoid ℓ₁ ℓ₂) (G : Group cℓ ℓ) where
       x ∎
 
 open G-Action
-
-variable
+private
+ variable
   G : Group cℓ ℓ
 
-record G-Set G : Set (suc (ℓ₁ ⊔ ℓ₂ ⊔ cℓ ⊔ ℓ)) where
+record G-Set {cℓ ℓ ℓ₁ ℓ₂ : Level} (G : Group cℓ ℓ) : Set (suc (ℓ₁ ⊔ ℓ₂ ⊔ cℓ ⊔ ℓ)) where
   field
     set : Setoid ℓ₁ ℓ₂
     act : Action {cℓ = cℓ} {ℓ} set G
@@ -111,7 +117,8 @@ open G-Set
 open Action
 
 -- Identity
-variable
+private
+ variable
   A : G-Set {ℓ₁ = ℓ₁} {ℓ₂ = ℓ₂} G
   B : G-Set {ℓ₁ = ℓ₃} {ℓ₂ = ℓ₄} G
   C : G-Set {ℓ₁ = ℓ₅} {ℓ₂ = ℓ₆} G
