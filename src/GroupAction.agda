@@ -11,6 +11,7 @@ open import Relation.Binary
 
 module GroupAction where
 
+open import Agda.Builtin.Sigma
 open import Data.Product
 open import Data.Product.Relation.Binary.Pointwise.NonDependent
 open import Function
@@ -151,7 +152,7 @@ GSet-× A B = record
   { set = set A ×ₛ set B
   ; act = record
     { ⊙ₐ = record
-      { f = λ { (g , (a , b)) → g ∙A.∙ₐ a , (g ∙B.∙ₐ b) }
+      { f =  λ { (g , (a , b)) → (g ∙A.∙ₐ a , (g ∙B.∙ₐ b)) }
       ; cong = λ { (g≈g' , a≈a' , b≈b') → Func.cong ∙A.⊙ₐ (g≈g' , a≈a') , Func.cong ∙B.⊙ₐ (g≈g' , b≈b') }
       }
     ; isAction = record
@@ -165,14 +166,32 @@ GSet-× A B = record
 
 -- Projections
 π₁ : Equivariant (GSet-× A B) A
-π₁ = {!!}
+π₁ {A = A} {B = B} = record
+  {  F =  record
+       {  f = proj₁
+        ;  cong = {!!}
+       }
+   ;  isEquivariant =  λ g (a,b) → {!!}
+  }
+  where open Equivariant
+        open ≈-Reasoning
+        open Func
 
 π₂ : Equivariant (GSet-× A B) B
 π₂ = {!!}
 
 -- Product morphism
 ⟨_,_⟩ : Equivariant C A → Equivariant C B → Equivariant C (GSet-× A B)
-⟨ H , K ⟩ = {!!}
+⟨_,_⟩ {C = C} H K = record
+  {  F =  record
+       {  f =  λ c →  (F H).f c ,  (F K).f c 
+        ;  cong = {!!}
+       }
+   ;  isEquivariant = λ x g → ?
+  }
+  where open Equivariant
+        open ≈-Reasoning (set C)
+        open Func
 
 open Equivariant
 
