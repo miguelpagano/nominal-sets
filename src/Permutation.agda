@@ -13,6 +13,7 @@ open import Function
 open import Relation.Binary
 open import Relation.Binary.PropositionalEquality using (_≡_;≢-sym)
 open import Relation.Nullary
+open import Relation.Nullary.Negation
 import Relation.Binary.Reasoning.Setoid as ≈-Reasoning
 open import Function.Construct.Composition renaming (inverse to _∘ₚ_)
 open import Function.Construct.Identity renaming (inverse to idₚ)
@@ -297,28 +298,6 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
           ≈⟨ reflexive (transp-eq₃ e≠a e≠c) ⟩
           e ∎
 
-  _≡A_ = _≡_ {A = Carrier}
-  _∈ₐ_ : Carrier → Perm → Set ℓ'
-  a ∈ₐ π = f π a ≉ a
-  _∉ₐ_ : Carrier → Perm → Set ℓ
-  a ∉ₐ π = f π a ≡A a
-
-  atoms : FinPerm → List Carrier
-  atoms Id = []
-  atoms (Comp p q) = atoms p ++ atoms q
-  atoms (Swap a b) = a ∷ b ∷ []
-
-  ∉-atoms-∉ₐ : ∀ q a → a ∉ atoms q → a ∉ₐ ⟦ q ⟧
-  ∉-atoms-∉ₐ Id a a∉at = _≡_.refl
-  ∉-atoms-∉ₐ (Swap b c) a a∉at =
-    transp-eq₃ (∉-∷⁼ (Any.here refl) a∉at)
-               (∉-∷⁼ (Any.there (Any.here refl)) a∉at)
-  ∉-atoms-∉ₐ (Comp p q) a a∉at = goal
-    where
-    a∉ₐp = ∉-atoms-∉ₐ p a (∉-++⁻ˡ (atoms p) a∉at)
-    goal : a ∉ₐ (⟦ p ⟧ ∘ₚ ⟦ q ⟧)
-    goal rewrite a∉ₐp = ∉-atoms-∉ₐ q a (∉-++⁻ʳ (atoms p) a∉at)
-
   _⁻¹ᵖ : (p : FinPerm) → ∃ (λ q → (⟦ p ⟧ ⁻¹) ≈ₚ ⟦ q ⟧)
   Id ⁻¹ᵖ = Id , λ _ → refl
   Comp p q ⁻¹ᵖ with  p ⁻¹ᵖ | q ⁻¹ᵖ
@@ -334,6 +313,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
 
   PERM : Set (ℓ ⊔ ℓ')
   PERM = Σ[ p ∈ Perm ] (Σ[ q ∈ FinPerm ] ( p ≈ₚ ⟦ q ⟧))
+
 
   ID : PERM
   ID = idₚ setoid , Id , λ _ → refl
@@ -367,18 +347,84 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
                   isSemigroup = record {
                   isMagma = record {
                     isEquivalence = record {
-                        refl = λ x → refl
-                      ; sym = λ x x₁ → sym (x x₁)
+                        refl = λ _ → refl
+                      ; sym = λ x → sym ∘ x
                       ; trans = λ x x₁ x₂ → trans (x x₂) (x₁ x₂)
                     } ;
-                    ∙-cong = λ {f} {g} {h} {k} f=g h=k x →
-                      Group.∙-cong Sym-A {proj₁ f} {proj₁ g} {proj₁ h} {proj₁ k} f=g h=k x
+                    ∙-cong = λ {f} {g} {h} {k} →
+                      Group.∙-cong Sym-A {proj₁ f} {proj₁ g} {proj₁ h} {proj₁ k}
                   }
-                  ; assoc = λ x y z x₁ → refl
+                  ; assoc = λ _ _ _ _ → refl
                   }
-                ; identity = (λ x x₁ → refl) , λ x x₁ → refl
+                ; identity = (λ _ _ → refl) , λ _ _ → refl
                 }
-              ; inverse = (λ f x → Inverse.inverseˡ (proj₁ f) x ) , λ f x → Inverse.inverseʳ (proj₁ f) x
-              ; ⁻¹-cong = λ {f} {g} f=g x → Group.⁻¹-cong Sym-A {proj₁ f} {proj₁ g} f=g x
+              ; inverse = Inverse.inverseˡ ∘ proj₁  , Inverse.inverseʳ ∘ proj₁
+              ; ⁻¹-cong = λ {f} {g} → Group.⁻¹-cong Sym-A {proj₁ f} {proj₁ g}
               }
             }
+
+  _≡A_ = _≡_ {A = Carrier}
+
+  _∈-dom_ : Carrier → Perm → Set ℓ'
+  a ∈-dom π = f π a ≉ a
+
+  -- Strict equality
+  _∉-dom!_ : Carrier → Perm → Set ℓ
+  a ∉-dom! π = f π a ≡A a
+
+  _∉-dom_ : Carrier → Perm → Set ℓ'
+  a ∉-dom π = f π a ≈ a
+
+  atoms : FinPerm → List Carrier
+  atoms Id = []
+  atoms (Comp p q) = atoms p ++ atoms q
+  atoms (Swap a b) = a ∷ b ∷ []
+
+  ∈-dom? : (p : FinPerm) → (x : Carrier) → Dec (x ∈-dom ⟦ p ⟧)
+  ∈-dom? p x = ¬? (f ⟦ p ⟧ x ≟ x)
+
+  atoms' : FinPerm → List Carrier
+  atoms' p = filter (∈-dom? p) (atoms p)
+
+  test : ∀ a → atoms' (Swap a a) ≡ []
+  test a = filter-none (∈-dom? (Swap a a))
+    ((λ x → x ((transp-id a a a refl))) ∷
+    ((λ x → x ((transp-id a a a refl)))) ∷ [])
+    where
+    open import Data.List.Properties
+    open import Data.List.Relation.Unary.All
+    open import Relation.Unary renaming (_∈_ to _sats_)
+
+  norm : FinPerm → FinPerm
+  norm p = go (atoms' p)
+    where
+    go : List Carrier → FinPerm
+    go [] = Id
+    go (a ∷ []) = Swap a (f ⟦ p ⟧ a)
+    go (a ∷ b ∷ as) = Comp (Swap a (f ⟦ p ⟧ a)) (go (b ∷ as))
+
+
+
+  ∈-dom-resp-≈ : (p : FinPerm) → (_∈-dom ⟦ p ⟧) Respects _≈_
+  ∈-dom-resp-≈ p {x} {y} x≈y x∈domp y∉domp = x∈domp x∉domp
+    where x∉domp : f ⟦ p ⟧ x ≈ x
+          x∉domp = trans (cong₁ ⟦ p ⟧ x≈y) (trans y∉domp (sym x≈y))
+
+  ∉-atoms-∉!ₐ : ∀ q a → a ∉ atoms q → a ∉-dom! ⟦ q ⟧
+  ∉-atoms-∉!ₐ Id a a∉at = _≡_.refl
+  ∉-atoms-∉!ₐ (Swap b c) a a∉at =
+    transp-eq₃ (∉-∷⁼ (Any.here refl) a∉at)
+               (∉-∷⁼ (Any.there (Any.here refl)) a∉at)
+  ∉-atoms-∉!ₐ (Comp p q) a a∉at = goal
+    where
+    a∉ₐp = ∉-atoms-∉!ₐ p a (∉-++⁻ˡ (atoms p) a∉at)
+    goal : a ∉-dom! (⟦ p ⟧ ∘ₚ ⟦ q ⟧)
+    goal rewrite a∉ₐp = ∉-atoms-∉!ₐ q a (∉-++⁻ʳ (atoms p) a∉at)
+
+  ∉-atoms-∉ₐ : ∀ q a → a ∉ atoms q → a ∉-dom ⟦ q ⟧
+  ∉-atoms-∉ₐ q a a∉at = reflexive (∉-atoms-∉!ₐ q a a∉at)
+
+  ∉ₐ-∉-atoms : ∀ q a → a ∉-dom ⟦ q ⟧ → a ∉ atoms' q
+  ∉ₐ-∉-atoms p a a∉dom a∈at = proj₂ q a∉dom
+    where open import Data.List.Membership.Setoid.Properties
+          q = ∈-filter⁻ setoid (∈-dom? p) (∈-dom-resp-≈ p) {xs = atoms p} a∈at
