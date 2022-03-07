@@ -1,12 +1,11 @@
 ------------------------------------------------------------
 -- Nominal Sets
 --
--- Nominal Sets
+--
+-- Extensional equality. Predicates on Setoids. Indexed Setoids.
 --
 -- Taken from the Universal Algebra Library:
 --   https://github.com/miguelpagano/universal-algebra
---
--- Extensional equality. Predicates on Setoids. Indexed Setoids.
 ------------------------------------------------------------
 module Setoid-Extra where
 

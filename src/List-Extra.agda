@@ -1,3 +1,11 @@
+------------------------------------------------------------
+-- Nominal Sets
+--
+--
+--
+-- Taken from
+--   https://github.com/miguelpagano/formalmetatheory-nominal-Church-Rosser/tree/agda-stdlib-1.6
+------------------------------------------------------------
 module List-Extra where
 
 open import Level
@@ -19,6 +27,7 @@ module Extra {c ℓ : Level} (A : Setoid c ℓ) where
 
   open Any A -- renaming (_∈_ to _∈'_;_∉_ to _∉_)
   open Setoid A
+
   ∉-++⁻ : {v : Carrier} → ∀ xs {ys} → v ∉ xs ++ ys → (v ∉ xs) × (v ∉ ys)
   ∉-++⁻ xs v∉xs++ys =
         (λ v∈xs → ⊥-elim (v∉xs++ys (++⁺ˡ v∈xs))) ,
