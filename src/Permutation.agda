@@ -9,7 +9,7 @@ open import Level
 open import Data.List.Relation.Unary.Any
 open import Data.Product hiding (map)
 open import Algebra hiding (Inverse)
-open import Function
+open import Function hiding (_↔_)
 open import Relation.Binary
 open import Relation.Binary.PropositionalEquality using (_≡_;≢-sym)
 open import Relation.Nullary
@@ -113,30 +113,30 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   transp-eq₁ : ∀ {a} b {c} → c ≈ a → transp a b c ≡ b
   transp-eq₁ {a} b {c} c=a with c ≟ a
   ... | yes p = _≡_.refl
-  ... | no c≠a = ⊥-elim (c≠a c=a)
+  ... | no c≠a = contradiction c=a c≠a
 
   transp-eq₂ : ∀ {a b c} → c ≉ a → c ≈ b → transp a b c ≡ a
   transp-eq₂ {a} {b} {c} c≠a c=b with c ≟ a
-  ... | yes c=a = ⊥-elim (c≠a c=a)
+  ... | yes c=a = contradiction c=a c≠a
   ... | no c≠a with c ≟ b
   ... | yes c=b = _≡_.refl
-  ... | no c≠b = ⊥-elim (c≠b c=b)
+  ... | no c≠b = contradiction c=b c≠b
 
   transp-eq₃ : ∀ {a b c} → c ≉ a → c ≉ b → transp a b c ≡ c
   transp-eq₃ {a} {b} {c} c≠a c≠b with c ≟ a
-  ... | yes c=a = ⊥-elim (c≠a c=a)
+  ... | yes c=a = contradiction c=a c≠a
   ... | no c≠a with c ≟ b
   ... | no _ = _≡_.refl
-  ... | yes c=b = ⊥-elim (c≠b c=b)
+  ... | yes c=b = contradiction c=b c≠b
 
   ≉-sym : ∀ {a b} → a ≉ b → b ≉ a
-  ≉-sym a≠b b=a = ⊥-elim (a≠b (sym b=a))
+  ≉-sym a≠b b=a = contradiction (sym b=a) a≠b
 
   ≉-resp-≈₁ : ∀ {a b c} → a ≈ b → b ≉ c → a ≉ c
-  ≉-resp-≈₁ a=b b≠c a=c = ⊥-elim (b≠c (trans (sym a=b) a=c))
+  ≉-resp-≈₁ a=b b≠c a=c = contradiction (trans (sym a=b) a=c) b≠c
 
   ≉-resp-≈₂ : ∀ {a b c} → b ≈ c → a ≉ b → a ≉ c
-  ≉-resp-≈₂ b=c a≠b a=c = ⊥-elim (a≠b (trans a=c (sym b=c)))
+  ≉-resp-≈₂ b=c a≠b a=c = contradiction (trans a=c (sym b=c)) a≠b
 
   transp-induction : ∀ {ℓP} (P : Carrier → Set ℓP) →
                      ∀ a b c →
@@ -165,8 +165,8 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   transp-inv₂ : ∀ a b c → transp a b c ≉ a → transp a b c ≈ b → a ≈ c
   transp-inv₂ a b c = transp-induction (λ x → x ≉ a → x ≈ b → a ≈ c) a b c
     (λ c=a _ _ → sym c=a)
-    (λ _ _ a≠a _ → ⊥-elim (a≠a refl))
-    (λ _ c≠b _ c=b → ⊥-elim (c≠b c=b))
+    (λ _ _ a≠a _ → contradiction refl a≠a)
+    (λ _ c≠b _ c=b → contradiction c=b c≠b)
 
   transp-inv₂' : ∀ a b c → transp a b c ≈ b → a ≈ c
   transp-inv₂' a b c = transp-induction (λ x → x ≈ b → a ≈ c) a b c
@@ -203,7 +203,6 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     (λ d=a → reflexive (transp-eq₁ b (trans c≈d d=a)))
     (λ d≠a d=b → reflexive (transp-eq₂ (≉-resp-≈₁ c≈d d≠a) (trans c≈d d=b)))
     (λ d≠a d≠b → trans (reflexive (transp-eq₃ ((≉-resp-≈₁ c≈d d≠a)) ((≉-resp-≈₁ c≈d d≠b)))) c≈d)
-
 
   data FinPerm : Set ℓ where
     Id : FinPerm
@@ -383,6 +382,9 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   ∈-dom? : (p : FinPerm) → (x : Carrier) → Dec (x ∈-dom ⟦ p ⟧)
   ∈-dom? p x = ¬? (f ⟦ p ⟧ x ≟ x)
 
+  ∈-atoms? : (p : FinPerm) → (x : Carrier) → Dec (x ∈ atoms p)
+  ∈-atoms? p x = x ∈? (atoms p)
+
   atoms' : FinPerm → List Carrier
   atoms' p = filter (∈-dom? p) (atoms p)
 
@@ -403,28 +405,48 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     go (a ∷ []) = Swap a (f ⟦ p ⟧ a)
     go (a ∷ b ∷ as) = Comp (Swap a (f ⟦ p ⟧ a)) (go (b ∷ as))
 
-
-
   ∈-dom-resp-≈ : (p : FinPerm) → (_∈-dom ⟦ p ⟧) Respects _≈_
   ∈-dom-resp-≈ p {x} {y} x≈y x∈domp y∉domp = x∈domp x∉domp
     where x∉domp : f ⟦ p ⟧ x ≈ x
           x∉domp = trans (cong₁ ⟦ p ⟧ x≈y) (trans y∉domp (sym x≈y))
 
-  ∉-atoms-∉!ₐ : ∀ q a → a ∉ atoms q → a ∉-dom! ⟦ q ⟧
-  ∉-atoms-∉!ₐ Id a a∉at = _≡_.refl
-  ∉-atoms-∉!ₐ (Swap b c) a a∉at =
+  ∉-atoms-∉! : ∀ {q a} → a ∉ atoms q → a ∉-dom! ⟦ q ⟧
+  ∉-atoms-∉! {Id} {a} a∉at = _≡_.refl
+  ∉-atoms-∉! {Swap b c} {a} a∉at =
     transp-eq₃ (∉-∷⁼ (Any.here refl) a∉at)
                (∉-∷⁼ (Any.there (Any.here refl)) a∉at)
-  ∉-atoms-∉!ₐ (Comp p q) a a∉at = goal
+  ∉-atoms-∉! {Comp p q} {a} a∉at = goal
     where
-    a∉ₐp = ∉-atoms-∉!ₐ p a (∉-++⁻ˡ (atoms p) a∉at)
+    a∉p = ∉-atoms-∉! {p} {a} (∉-++⁻ˡ (atoms p) a∉at)
     goal : a ∉-dom! (⟦ p ⟧ ∘ₚ ⟦ q ⟧)
-    goal rewrite a∉ₐp = ∉-atoms-∉!ₐ q a (∉-++⁻ʳ (atoms p) a∉at)
+    goal rewrite a∉p = ∉-atoms-∉! {q} (∉-++⁻ʳ (atoms p) a∉at)
 
-  ∉-atoms-∉ₐ : ∀ q a → a ∉ atoms q → a ∉-dom ⟦ q ⟧
-  ∉-atoms-∉ₐ q a a∉at = reflexive (∉-atoms-∉!ₐ q a a∉at)
+  ∉-atoms-∉ : ∀ {q a} → a ∉ atoms q → a ∉-dom ⟦ q ⟧
+  ∉-atoms-∉ {q} {a} a∉at = reflexive (∉-atoms-∉! {q} a∉at)
 
-  ∉ₐ-∉-atoms : ∀ q a → a ∉-dom ⟦ q ⟧ → a ∉ atoms' q
-  ∉ₐ-∉-atoms p a a∉dom a∈at = proj₂ q a∉dom
+  ∉-atoms'-∉ : ∀ q {a} → a ∉ atoms' q → a ∉-dom ⟦ q ⟧
+  ∉-atoms'-∉ q {a} a∉atq with ∈-atoms? q a
+  ... | yes a∈atq = decidable-stable (f ⟦ q ⟧ a ≟ a) (p a∉atq)
+    where
+    open import Data.List.Membership.Setoid.Properties
+    open import List-Extra
+    p = ∉-filter⁻ setoid (∈-dom? q) (∈-dom-resp-≈ q) {xs = atoms q} a∈atq
+  ... | no a∉atq = ∉-atoms-∉ {q} a∉atq
+
+  ∉-∉-atoms : ∀ q {a} → a ∉-dom ⟦ q ⟧ → a ∉ atoms' q
+  ∉-∉-atoms p a∉dom a∈at = proj₂ q a∉dom
     where open import Data.List.Membership.Setoid.Properties
           q = ∈-filter⁻ setoid (∈-dom? p) (∈-dom-resp-≈ p) {xs = atoms p} a∈at
+
+
+-- FIXME: move this to some more appropiate place.
+  open import Relation.Unary
+  _↔_ : ∀ {ℓP ℓQ} → (P : Pred Carrier ℓP) → (Q : Pred Carrier ℓQ) → Set (ℓ ⊔ ℓP ⊔ ℓQ)
+  P ↔ Q = ∀ a → (P a → Q a) × (Q a → P a)
+
+  ∈-PERM : (P : PERM) → (_∈-dom (proj₁ P)) ↔ (_∈-dom ⟦ proj₁ (proj₂ P) ⟧)
+  ∈-PERM (π , p , eq) a = (λ a∈domπ a∉domp → a∈domπ (trans (eq a) a∉domp)) ,
+                           λ a∈domp a∉domπ → a∈domp (trans (sym (eq a)) a∉domπ)
+
+  ∉-PERM : (P : PERM) → (_∉-dom (proj₁ P)) ↔ (_∉-dom ⟦ proj₁ (proj₂ P) ⟧)
+  ∉-PERM (π , p , eq) a = (λ x → trans (sym (eq a)) x) , λ x → trans (eq a) x

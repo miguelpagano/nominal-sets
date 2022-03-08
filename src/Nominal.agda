@@ -7,12 +7,13 @@
 module Nominal where
 open import Level
 open import Data.Product hiding (map)
+open import Data.List
 open import Algebra hiding (Inverse)
 open import Function
 open import Relation.Binary
 open import Relation.Binary.PropositionalEquality using (_≡_;≢-sym)
 open import Relation.Nullary
-open import Relation.Unary
+open import Relation.Unary hiding (_∉_)
 import Relation.Binary.Reasoning.Setoid as ≈-Reasoning
 open import Function.Construct.Composition renaming (inverse to _∘ₚ_)
 open import Function.Construct.Identity renaming (inverse to idₚ)
@@ -28,6 +29,7 @@ module Nominal (A-setoid : DecSetoid ℓ ℓ') where
   𝔸 : Group (ℓ ⊔ ℓ') (ℓ ⊔ ℓ')
   𝔸 = Perm-A
 
+  open import Data.List.Membership.DecSetoid A-setoid
 
   import GroupAction
   open import Setoid-Extra
@@ -42,10 +44,21 @@ module Nominal (A-setoid : DecSetoid ℓ ℓ') where
     open SetoidPredicate
     open Func
 
-    _≈A_ = _≈_ A-setoid
-    _≉A_ = _≉_ A-setoid
     _≈X_ = _≈_ (set X-set)
     _∘ₓ_ : PERM → Carrier (set X-set) → Carrier (set X-set)
     p ∘ₓ a = (f ∘ ⊙ₐ) (act X-set) (p , a)
-    supp_ : (x : Carrier (set X-set)) → Set (ℓ ⊔ ℓ' ⊔ ℓP ⊔ ℓx')
-    supp x = ∀ (π : PERM) → (∀ a → predicate P a → a ∉ₐ (proj₁ π)) → (π ∘ₓ x) ≈X x
+
+    is-supp_ : (x : Carrier (set X-set)) → Set (ℓ ⊔ ℓ' ⊔ ℓP ⊔ ℓx')
+    is-supp x = ∀ (π : PERM) → (∀ a → predicate P a → a ∉-dom (proj₁ π)) → (π ∘ₓ x) ≈X x
+
+    private
+      is-supp'_ : (x : Carrier (set X-set)) → Set (ℓ ⊔ ℓ' ⊔ ℓP ⊔ ℓx')
+      is-supp' x = ∀ (π : PERM) → (∀ a → predicate P a → a ∉ atoms' (proj₁ (proj₂ π))) →
+        (π ∘ₓ x) ≈X x
+
+      imp : ∀ x → is-supp x → is-supp' x
+      imp x pred π inv = pred π (λ a Pa → proj₂ (∉-PERM π a)
+         (∉-atoms'-∉ (proj₁ (proj₂ π)) (inv a Pa)))
+
+      imp' : ∀ x → is-supp' x → is-supp x
+      imp' x pred Π@(π , p , _) inv = pred Π (λ a Pa → ∉-∉-atoms p (proj₁ (∉-PERM Π a) ((inv a Pa))))

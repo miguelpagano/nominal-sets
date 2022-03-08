@@ -48,3 +48,22 @@ module Extra {c ℓ : Level} (A : Setoid c ℓ) where
 
   ∉-∷⁼ᵗ : {a d : Carrier} {xs : List Carrier} → d ∉ (a ∷ xs) → d ∉ xs
   ∉-∷⁼ᵗ d∉∷ d∈xs = d∉∷ (there d∈xs)
+
+open import Relation.Unary renaming (Decidable to Decidableᵤ) hiding (_∈_;_∉_)
+open import Relation.Nullary
+import Data.List.Relation.Unary.Any.Properties as Any
+import Data.List.Membership.Setoid as Membership
+open Setoid using (Carrier)
+
+private
+  variable
+    c c₁ c₂ c₃ p ℓ ℓ₁ ℓ₂ ℓ₃ : Level
+
+module _ (S : Setoid c ℓ) {P : Pred (Carrier S) p}
+         (P? : Decidableᵤ P) (resp : P Respects (Setoid._≈_ S)) where
+
+  open Setoid S using (_≈_; sym; Carrier)
+  open Membership S
+
+  ∉-filter⁻ : ∀ {v} {xs} → v ∈ xs → v ∉ filter P? xs → ¬ (P v)
+  ∉-filter⁻ {v} {xs = x ∷ xs} v∈xs v∉f[x∷xs] pv = v∉f[x∷xs] (∈-filter⁺ S P? resp v∈xs pv)
