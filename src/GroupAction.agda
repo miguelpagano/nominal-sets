@@ -11,7 +11,6 @@ open import Relation.Binary
 
 module GroupAction where
 
-open import Agda.Builtin.Sigma
 open import Data.Product
 open import Data.Product.Relation.Binary.Pointwise.NonDependent
 open import Function
@@ -35,8 +34,9 @@ module G-Action (A : Setoid ℓ₁ ℓ₂) (G : Group cℓ ℓ) where
 
     infix 8 _∙ₐ_
     private
-      _≈A_ = _≈_ A
-      _≈G_ = _≈_ G
+       _≈A_ = _≈_ A
+       _≈G_ = _≈_ G
+
     _∙ₐ_ : Carrier G → Carrier A → Carrier A
     g ∙ₐ x = Func.f ⊙ₐ (g , x)
 
@@ -152,8 +152,8 @@ GSet-× A B = record
   { set = set A ×ₛ set B
   ; act = record
     { ⊙ₐ = record
-      { f =  λ { (g , (a , b)) → (g ∙A.∙ₐ a , (g ∙B.∙ₐ b)) }
-      ; cong = λ { (g≈g' , a≈a' , b≈b') → Func.cong ∙A.⊙ₐ (g≈g' , a≈a') , Func.cong ∙B.⊙ₐ (g≈g' , b≈b') }
+      { f =  λ (g , (a , b)) → (g ∙A.∙ₐ a , (g ∙B.∙ₐ b))
+      ; cong = λ (g≈g' , a≈a' , b≈b') → Func.cong ∙A.⊙ₐ (g≈g' , a≈a') ,  Func.cong ∙B.⊙ₐ (g≈g' , b≈b')
       }
     ; isAction = record
       { idₐ = λ x → ∙A.idₐ (proj₁ x) , ∙B.idₐ (proj₂ x)
@@ -169,30 +169,55 @@ GSet-× A B = record
 π₁ {A = A} {B = B} = record
   {  F =  record
        {  f = proj₁
-        ;  cong = {!!}
+        ;  cong = proj₁
        }
-   ;  isEquivariant =  λ g (a,b) → {!!}
+   ;  isEquivariant = λ x g → refl A-setoid 
   }
   where open Equivariant
-        open ≈-Reasoning
         open Func
+        open Setoid (set A) renaming (Carrier to A'; _≈_ to  _≈A_)
+        open Setoid (set B) renaming (Carrier to B'; _≈_ to  _≈B_)
+        A-setoid = set A
 
 π₂ : Equivariant (GSet-× A B) B
-π₂ = {!!}
+π₂ {A = A} {B = B} = record
+  {  F =  record
+       {  f = proj₂
+        ;  cong = proj₂
+       }
+   ;  isEquivariant = λ x g → refl B-setoid 
+  }
+  where open Equivariant
+        open Func
+        open Setoid (set A) renaming (Carrier to A'; _≈_ to  _≈A_)
+        open Setoid (set B) renaming (Carrier to B'; _≈_ to  _≈B_)
+        B-setoid = set B
 
 -- Product morphism
 ⟨_,_⟩ : Equivariant C A → Equivariant C B → Equivariant C (GSet-× A B)
-⟨_,_⟩ {C = C} H K = record
+⟨_,_⟩  {C = C} {A = A} {B = B} H K = record
   {  F =  record
-       {  f =  λ c →  (F H).f c ,  (F K).f c 
-        ;  cong = {!!}
+       {  f =  λ c →  (f (F H)) c ,  (f (F K)) c 
+        ;  cong = λ c≈c' → Func.cong  (F H) c≈c' , Func.cong (F K)  c≈c'  
        }
-   ;  isEquivariant = λ x g → ?
+   ;  isEquivariant = λ x g → (A=.begin
+                                                 f (F H) (f (⊙ₐ (act C)) (g , x))
+                                                 A=.≈⟨ isEquivariant H x g ⟩
+                                                 (f (⊙ₐ (act A)) (g , f (F H) x))
+                                                 A=.∎) ,  
+                                              (B=.begin
+                                                 f (F K) (f (⊙ₐ (act C)) (g , x))
+                                                 B=.≈⟨ isEquivariant K x g ⟩
+                                                 (f (⊙ₐ (act B)) (g , f (F K) x))
+                                                 B=.∎)
   }
   where open Equivariant
-        open ≈-Reasoning (set C)
+        module A= = ≈-Reasoning (set A)
+        module B= = ≈-Reasoning (set B)
         open Func
-
+        open Setoid (set A) renaming (Carrier to A'; _≈_ to  _≈A_)
+        open Setoid (set B) renaming (Carrier to B'; _≈_ to  _≈B_)
+       
 open Equivariant
 
 -- Equalities
