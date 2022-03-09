@@ -1,4 +1,3 @@
-{-# OPTIONS --allow-unsolved-metas #-}
 ------------------------------------------------------------
 -- Nominal Sets
 --
@@ -136,15 +135,18 @@ _∘G_ {A = A} {B = B} {C = C} H K = record {
     F = F H ∘ₛ F K
   ; isEquivariant = λ x g →
     begin
-      f (F K) (f (F H) (f (⊙ₐ (act A)) (g , x)))
+      f (F H ∘ₛ F K) (g ∙A x)
       ≈⟨ cong (F K) (isEquivariant H x g ) ⟩
-      f (F K) (f (⊙ₐ (act B)) (g , (f (F H) x)))
+      f (F K) (g ∙B (f (F H) x))
       ≈⟨ isEquivariant K (f (F H) x) g ⟩
-      f (⊙ₐ (act C)) (g , f (F K) (f (F H) x)) ∎
+      g ∙C f (F H ∘ₛ F K) x ∎
   }
   where open Equivariant
         open ≈-Reasoning (set C)
         open Func
+        open Action (act A) renaming (_∙ₐ_ to _∙A_)
+        open Action (act B) renaming (_∙ₐ_ to _∙B_)
+        open Action (act C) renaming (_∙ₐ_ to _∙C_)
 
 -- Binary Product (do we need/want more?)
 GSet-× : G-Set {ℓ₁ = ℓ₁} {ℓ₂ = ℓ₂} G → G-Set {ℓ₁ = ℓ₃} {ℓ₄} G → G-Set {ℓ₁ = ℓ₁ ⊔ ℓ₃} {ℓ₂ = ℓ₂ ⊔ ℓ₄} G
@@ -171,7 +173,7 @@ GSet-× A B = record
        {  f = proj₁
         ;  cong = proj₁
        }
-   ;  isEquivariant = λ x g → refl A-setoid 
+   ;  isEquivariant = λ x g → refl A-setoid
   }
   where open Equivariant
         open Func
@@ -185,7 +187,7 @@ GSet-× A B = record
        {  f = proj₂
         ;  cong = proj₂
        }
-   ;  isEquivariant = λ x g → refl B-setoid 
+   ;  isEquivariant = λ x g → refl B-setoid
   }
   where open Equivariant
         open Func
@@ -197,19 +199,20 @@ GSet-× A B = record
 ⟨_,_⟩ : Equivariant C A → Equivariant C B → Equivariant C (GSet-× A B)
 ⟨_,_⟩  {C = C} {A = A} {B = B} H K = record
   {  F =  record
-       {  f =  λ c →  (f (F H)) c ,  (f (F K)) c 
-        ;  cong = λ c≈c' → Func.cong  (F H) c≈c' , Func.cong (F K)  c≈c'  
+       {  f =  λ c →  (f (F H)) c ,  (f (F K)) c
+        ;  cong = λ c≈c' → Func.cong  (F H) c≈c' , Func.cong (F K)  c≈c'
        }
-   ;  isEquivariant = λ x g → (A=.begin
-                                                 f (F H) (f (⊙ₐ (act C)) (g , x))
-                                                 A=.≈⟨ isEquivariant H x g ⟩
-                                                 (f (⊙ₐ (act A)) (g , f (F H) x))
-                                                 A=.∎) ,  
-                                              (B=.begin
-                                                 f (F K) (f (⊙ₐ (act C)) (g , x))
-                                                 B=.≈⟨ isEquivariant K x g ⟩
-                                                 (f (⊙ₐ (act B)) (g , f (F K) x))
-                                                 B=.∎)
+   ;  isEquivariant = λ x g →
+        ( A=.begin
+        f (F H) (g ∙C x)
+        A=.≈⟨ isEquivariant H x g ⟩
+        g ∙A f (F H) x
+        A=.∎ ) ,
+      (B=.begin
+         f (F K) (g ∙C x)
+         B=.≈⟨ isEquivariant K x g ⟩
+         g ∙B f (F K) x
+         B=.∎ )
   }
   where open Equivariant
         module A= = ≈-Reasoning (set A)
@@ -217,7 +220,10 @@ GSet-× A B = record
         open Func
         open Setoid (set A) renaming (Carrier to A'; _≈_ to  _≈A_)
         open Setoid (set B) renaming (Carrier to B'; _≈_ to  _≈B_)
-       
+        open Action (act A) renaming (_∙ₐ_ to _∙A_)
+        open Action (act B) renaming (_∙ₐ_ to _∙B_)
+        open Action (act C) renaming (_∙ₐ_ to _∙C_)
+
 open Equivariant
 
 -- Equalities
