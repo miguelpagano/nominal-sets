@@ -95,6 +95,8 @@ record SetoidPredicate {ℓ₁ ℓ₂ ℓ₃} (S : Setoid ℓ₁ ℓ₂) :
     predicate   : Pred (Carrier S) ℓ₃
     predWellDef : WellDef S predicate
 
+  syntax predicate P a = a sats P
+
 open SetoidPredicate
 
 ∪-SetoidPred : ∀ {ℓ₁ ℓ₂ ℓ₃ ℓ₄} {S : Setoid ℓ₁ ℓ₂} →

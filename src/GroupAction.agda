@@ -47,6 +47,9 @@ module G-Action (A : Setoid ℓ₁ ℓ₂) (G : Group cℓ ℓ) where
     congˡ : ∀ {g} {g'} x → g ≈G g' → (g ∙ₐ x) ≈A (g' ∙ₐ x)
     congˡ x g≈g' = Func.cong ⊙ₐ (g≈g' , refl A)
 
+    congʳ : ∀ g {x} {x'} → x ≈A x' → (g ∙ₐ x) ≈A (g ∙ₐ x')
+    congʳ g x≈x' = Func.cong ⊙ₐ (refl G , x≈x')
+
   record Action : Set (ℓ₁ ⊔ ℓ₂ ⊔ cℓ ⊔ ℓ) where
     G-setoid = Group.setoid G
     field

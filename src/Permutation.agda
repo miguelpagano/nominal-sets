@@ -12,6 +12,7 @@ open import Algebra hiding (Inverse)
 open import Function hiding (_↔_)
 open import Relation.Binary
 open import Relation.Binary.PropositionalEquality using (_≡_;≢-sym)
+  renaming(sym to ≡-sym)
 open import Relation.Nullary
 open import Relation.Nullary.Negation
 import Relation.Binary.Reasoning.Setoid as ≈-Reasoning
@@ -83,7 +84,7 @@ module Symmetry-Group (A-setoid : Setoid ℓ ℓ') where
 
 module Perm (A-setoid : DecSetoid ℓ ℓ') where
   open DecSetoid A-setoid
-  open module A-Sym = Symmetry-Group setoid hiding (_≈_)
+  open module A-Sym = Symmetry-Group setoid hiding (_≈_) public
   open import Data.Bool hiding (_≟_)
   open import Data.Empty
 
@@ -313,7 +314,6 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   PERM : Set (ℓ ⊔ ℓ')
   PERM = Σ[ p ∈ Perm ] (Σ[ q ∈ FinPerm ] ( p ≈ₚ ⟦ q ⟧))
 
-
   ID : PERM
   ID = idₚ setoid , Id , λ _ → refl
 
@@ -333,6 +333,27 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       p ∘ₚ q
     , Comp code code'
     , λ x → trans (cong₁ q (eq x)) (eq' (f ⟦ code ⟧ x))
+
+  SWAP : Carrier → Carrier → PERM
+  SWAP a b = ⟦ Swap a b ⟧ , Swap a b , λ x → refl
+
+  toPERM : (p : FinPerm) → PERM
+  toPERM Id = ID
+  toPERM (Comp p q) = toPERM p ∘P toPERM q
+  toPERM (Swap a b) = SWAP a b
+
+  toPERM-corr : ∀ p → proj₁ (proj₂ (toPERM p)) ≡ p
+  toPERM-corr Id = _≡_.refl
+  toPERM-corr (Comp p q) rewrite toPERM-corr p | toPERM-corr q = _≡_.refl
+  toPERM-corr (Swap a b) = _≡_.refl
+
+  toPERM-eq : ∀ p → proj₁ (toPERM p) ≡ ⟦ p ⟧
+  toPERM-eq Id = _≡_.refl
+  toPERM-eq (Comp p q) rewrite toPERM-eq p | toPERM-eq q = _≡_.refl
+  toPERM-eq (Swap a b) = _≡_.refl
+
+  toPERM-eq' : ∀ p → proj₁ (toPERM p) ≈ₚ ⟦ p ⟧
+  toPERM-eq' p x rewrite toPERM-eq p = refl
 
   Perm-A : Group (ℓ ⊔ ℓ') (ℓ ⊔ ℓ')
   Perm-A = record
@@ -379,6 +400,9 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   atoms (Comp p q) = atoms p ++ atoms q
   atoms (Swap a b) = a ∷ b ∷ []
 
+  at-swap : ∀ a b → a ∈ atoms (Swap a b) × b ∈ atoms (Swap a b)
+  at-swap a b = here refl , there (here refl)
+
   ∈-dom? : (p : FinPerm) → (x : Carrier) → Dec (x ∈-dom ⟦ p ⟧)
   ∈-dom? p x = ¬? (f ⟦ p ⟧ x ≟ x)
 
@@ -387,6 +411,9 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
 
   atoms' : FinPerm → List Carrier
   atoms' p = filter (∈-dom? p) (atoms p)
+
+  atomsₚ : PERM → List Carrier
+  atomsₚ = atoms' ∘ proj₁ ∘ proj₂
 
   test : ∀ a → atoms' (Swap a a) ≡ []
   test a = filter-none (∈-dom? (Swap a a))
@@ -404,6 +431,15 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     go [] = Id
     go (a ∷ []) = Swap a (f ⟦ p ⟧ a)
     go (a ∷ b ∷ as) = Comp (Swap a (f ⟦ p ⟧ a)) (go (b ∷ as))
+
+  -- atoms-norm : ∀ p → atoms (norm p) ≡ atoms' (norm p)
+  -- atoms-norm Id = _≡_.refl
+  -- atoms-norm (Comp p p₁) = {!!}
+  -- atoms-norm (Swap a b) = {!!}
+
+  -- We can use norm to prove Thm. 1.15: by construction
+  -- we have π a ≠ a and π a' ≠ a' for (Swap a b) ∈ norm;
+  -- moreover we removed every (Swap a a).
 
   ∈-dom-resp-≈ : (p : FinPerm) → (_∈-dom ⟦ p ⟧) Respects _≈_
   ∈-dom-resp-≈ p {x} {y} x≈y x∈domp y∉domp = x∈domp x∉domp
@@ -450,3 +486,12 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
 
   ∉-PERM : (P : PERM) → (_∉-dom (proj₁ P)) ↔ (_∉-dom ⟦ proj₁ (proj₂ P) ⟧)
   ∉-PERM (π , p , eq) a = (λ x → trans (sym (eq a)) x) , λ x → trans (eq a) x
+
+-- module Ex where
+--   open import Data.Nat
+--   open import Data.Nat.Properties
+--   open Perm ≡-decSetoid
+
+--   test₁ : norm (Swap 0 0) ≡ Id
+--   test₁ = _≡_.refl
+
