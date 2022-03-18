@@ -1,24 +1,32 @@
-------------------------------------------------------------
 -- Nominal Sets
---
+-- ============
+
 -- Permutations on a setoid form the Symmetry Group.
-------------------------------------------------------------
+
 module Permutation where
 
 open import Level
+
+open import Algebra hiding (Inverse)
+open import Data.List
+import Data.List.Membership.DecSetoid as Membership
+open import Data.List.Membership.Setoid.Properties
 open import Data.List.Relation.Unary.Any
 open import Data.Product hiding (map)
-open import Algebra hiding (Inverse)
 open import Function hiding (_↔_)
+open import Function.Construct.Composition renaming (inverse to _∘ₚ_)
+open import Function.Construct.Identity renaming (inverse to idₚ)
+open import Function.Construct.Symmetry renaming (inverse to _⁻¹)
 open import Relation.Binary
+import Relation.Binary.Reasoning.Setoid as ≈-Reasoning
 open import Relation.Binary.PropositionalEquality using (_≡_;≢-sym)
   renaming(sym to ≡-sym)
 open import Relation.Nullary
 open import Relation.Nullary.Negation
-import Relation.Binary.Reasoning.Setoid as ≈-Reasoning
-open import Function.Construct.Composition renaming (inverse to _∘ₚ_)
-open import Function.Construct.Identity renaming (inverse to idₚ)
-open import Function.Construct.Symmetry renaming (inverse to _⁻¹)
+open import Relation.Unary hiding (_∈_;_∉_)
+
+open import Setoid-Extra
+import List-Extra
 
 variable
   ℓ ℓ' : Level
@@ -35,9 +43,11 @@ module Symmetry-Group (A-setoid : Setoid ℓ ℓ') where
   Perm : Set _
   Perm = Inverse A-setoid A-setoid
 
+-- Two permutations are equal if they coincide in every atom.
   _≈ₚ_ : Rel Perm _
   F ≈ₚ G = (x : Carrier A-setoid) → f F x ≈ f G x
 
+-- The inverse of equal permutations are equal
   cong-⁻¹ : Congruent₁ _≈ₚ_ _⁻¹
   cong-⁻¹ {F} {G} F≈G x = begin
             f⁻¹ F x
@@ -48,12 +58,16 @@ module Symmetry-Group (A-setoid : Setoid ℓ ℓ') where
               ≈⟨ proj₂ (inverse F) (f⁻¹ G x) ⟩
             f⁻¹ G x
               ∎
-
+-- and the composition of permutation maps equal permutations to
+-- equal permutations.
   cong₂-≈-∘ : Congruent₂ _≈ₚ_ _∘ₚ_
   cong₂-≈-∘ {F} {G} {H} {K} F≈G  H≈K x = begin
     f H (f F x)  ≈⟨ cong₁ H (F≈G x) ⟩
     f H (f G x)  ≈⟨ H≈K (f G x) ⟩
     f K (f G x) ∎
+
+-- Group of symmetries
+-- -------------------
 
   Sym-A : Group (ℓ ⊔ ℓ') (ℓ ⊔ ℓ')
   Sym-A = record
@@ -82,12 +96,22 @@ module Symmetry-Group (A-setoid : Setoid ℓ ℓ') where
               }
             }
 
+-- In this module we first define the transposition of atoms,
+-- prove that it is an Permutation (a bijection) on the
+-- set of atoms and prove several properties about them.
+-- Then we define the group of Finite Permutations.
+
+-- TODO:
+-- * prove that Perm is a sub-group of Sym.
+
 module Perm (A-setoid : DecSetoid ℓ ℓ') where
   open DecSetoid A-setoid
   open module A-Sym = Symmetry-Group setoid hiding (_≈_) public
   open import Data.Bool hiding (_≟_)
   open import Data.Empty
 
+  open Inequality setoid
+  
   open Inverse
 
   perm-injective : (π : Perm) → Injective _≈_ _≈_ (f π)
@@ -102,8 +126,12 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     where open ≈-Reasoning setoid
 
   perm-injective' : (π : Perm) → Injective _≉_ _≉_ (f π)
-  perm-injective' π {c} {d} neq c=d = ⊥-elim (neq (cong₁ π c=d))
+  perm-injective' π {c} {d} neq c=d = contradiction (cong₁ π c=d) neq
 
+-- Transposition (or swapping) of atoms
+-- ------------------------------------
+
+-- Usually, $\mathit{transp}\, a\,b$ is written $(a\ b)$.
   transp : (a b c : Carrier) → Carrier
   transp a b c with does (c ≟ a)
   ... | true = b
@@ -130,15 +158,8 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   ... | no _ = _≡_.refl
   ... | yes c=b = contradiction c=b c≠b
 
-  ≉-sym : ∀ {a b} → a ≉ b → b ≉ a
-  ≉-sym a≠b b=a = contradiction (sym b=a) a≠b
-
-  ≉-resp-≈₁ : ∀ {a b c} → a ≈ b → b ≉ c → a ≉ c
-  ≉-resp-≈₁ a=b b≠c a=c = contradiction (trans (sym a=b) a=c) b≠c
-
-  ≉-resp-≈₂ : ∀ {a b c} → b ≈ c → a ≉ b → a ≉ c
-  ≉-resp-≈₂ b=c a≠b a=c = contradiction (trans a=c (sym b=c)) a≠b
-
+-- This simple-minded induction principle allows for short proofs of
+-- several properties about transp.
   transp-induction : ∀ {ℓP} (P : Carrier → Set ℓP) →
                      ∀ a b c →
                      (c ≈ a → P b) →
@@ -157,6 +178,9 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     (λ _ c=b → trans a=b (sym c=b))
     (λ _ _ → refl)
 
+
+-- These four lemmas are inversions because we deduce some information
+-- about the atoms involved from information about the swapping.
   transp-inv₁ : ∀ a b c → transp a b c ≈ a → b ≈ c
   transp-inv₁ a b c = transp-induction (λ x → x ≈ a → b ≈ c) a b c
      (λ c=a b=a → trans b=a (sym c=a))
@@ -181,6 +205,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     (λ _ _ a≠a → ⊥-elim (a≠a refl))
     (λ _ _ _ _ → refl)
 
+-- Swapping is commutative.
   transp-comm : ∀ a b c → transp a b c ≈ transp b a c
   transp-comm a b c with a ≟ b
   ... | yes a=b = trans (transp-id a b c a=b) (sym (transp-id b a c (sym a=b)))
@@ -193,52 +218,20 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   transp-eq₁' a {b} {c} c=b = trans (transp-comm a b c)
                                     (reflexive (transp-eq₁ a c=b))
 
+-- it is involutive.
   transp-involutive : ∀ a b → Involutive _≈_ (transp a b)
   transp-involutive a b c = transp-induction (_≈ c) a b (transp a b c)
     (transp-inv₁ a b c)
     (transp-inv₂ a b c)
     (transp-inv₃ a b c)
 
+-- and preserves the equality.
   transp-respects-≈ : ∀ a b → (transp a b) Preserves _≈_ ⟶ _≈_
   transp-respects-≈ a b {c} {d} c≈d = transp-induction (transp a b c ≈_) a b d
     (λ d=a → reflexive (transp-eq₁ b (trans c≈d d=a)))
     (λ d≠a d=b → reflexive (transp-eq₂ (≉-resp-≈₁ c≈d d≠a) (trans c≈d d=b)))
     (λ d≠a d≠b → trans (reflexive (transp-eq₃ ((≉-resp-≈₁ c≈d d≠a)) ((≉-resp-≈₁ c≈d d≠b)))) c≈d)
 
-  data FinPerm : Set ℓ where
-    Id : FinPerm
-    Comp : (fp fq : FinPerm) → FinPerm
-    Swap : (a b : Carrier) → FinPerm
-
-  open import Data.List
-  open import Data.List.Membership.DecSetoid A-setoid
-  import List-Extra
-  open List-Extra.Extra setoid
-
-  ⟦_⟧ : FinPerm → Perm
-  ⟦ Id ⟧ = idₚ setoid
-  ⟦ Comp p q ⟧ = ⟦ p ⟧ ∘ₚ ⟦ q ⟧
-  ⟦ Swap a b ⟧ = record
-    { f = transp a b
-    ; f⁻¹ = transp a b
-    ; cong₁ = transp-respects-≈ a b
-    ; cong₂ = transp-respects-≈ a b
-    ; inverse = transp-involutive a b , transp-involutive a b
-    }
-
-  transp-injective : ∀ a b → Injective _≈_ _≈_  (transp a b)
-  transp-injective a b = perm-injective ⟦ Swap a b ⟧
-
-  transp-distributive-perm : ∀ (π : Perm) a b c →
-    transp (f π a) (f π b) (f π c) ≈ f π ((transp a b) c)
-  transp-distributive-perm π a b c = transp-induction (λ x → x ≈ (f π ∘ transp a b) c) (f π a) (f π b) (f π c)
-    (λ πc=πa → cong₁ π (sym (reflexive (transp-eq₁ b (perm-injective π πc=πa)))))
-    (λ πc≠πa πc=πb → cong₁ π (sym (reflexive (transp-eq₂ (perm-injective' π πc≠πa) (perm-injective π πc=πb)))))
-    (λ πc≠πa πc≠πb → cong₁ π (sym (reflexive (transp-eq₃ (perm-injective' π πc≠πa) (perm-injective' π πc≠πb)))))
-
-  transp-distributive : ∀ a b c d e →
-    transp a b (transp c d e) ≈ transp (transp a b c) (transp a b d) (transp a b e)
-  transp-distributive a b c d e = sym (transp-distributive-perm ⟦ Swap a b ⟧ c d e)
 
   transp-cancel' : ∀ a b c d → d ≉ b → d ≉ c → transp c b (transp a c d) ≈ transp a b d
   transp-cancel' a b c d d≠b d≠c = transp-induction (λ x → transp c b (transp a c d) ≈ x) a b d
@@ -298,8 +291,67 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
           ≈⟨ reflexive (transp-eq₃ e≠a e≠c) ⟩
           e ∎
 
+-- Finite Permutations
+-- -------------------
+--
+-- A finite permutation can be given by a composition of
+-- transpositions (alternatively we can think of a finite permutation
+-- given by a composition of disjoint cycles).
+
+-- We introduce a representation of composition of swappings; this is
+-- different from other presentations because we don't fix how they
+-- associate.
+
+  data FinPerm : Set ℓ where
+    Id : FinPerm
+    Comp : (fp fq : FinPerm) → FinPerm
+    Swap : (a b : Carrier) → FinPerm
+
+  -- Given a representation of a finite permutation, we can produce
+  -- a permutation; although we don't prove it should be obvious that
+  -- the domain of ⟦ p ⟧ is finite.
+  ⟦_⟧ : FinPerm → Perm
+  ⟦ Id ⟧ = idₚ setoid
+  ⟦ Comp p q ⟧ = ⟦ p ⟧ ∘ₚ ⟦ q ⟧
+  ⟦ Swap a b ⟧ = record
+    { f = transp a b
+    ; f⁻¹ = transp a b
+    ; cong₁ = transp-respects-≈ a b
+    ; cong₂ = transp-respects-≈ a b
+    ; inverse = transp-involutive a b , transp-involutive a b
+    }
+
+
+  -- We obtain some properties of transp for free, because it is
+  -- a permutation.
+  transp-injective : ∀ a b → Injective _≈_ _≈_  (transp a b)
+  transp-injective a b = perm-injective ⟦ Swap a b ⟧
+
+  transp-distributive-perm : ∀ (π : Perm) a b c →
+    transp (f π a) (f π b) (f π c) ≈ f π ((transp a b) c)
+  transp-distributive-perm π a b c = transp-induction (λ x → x ≈ (f π ∘ transp a b) c) (f π a) (f π b) (f π c)
+    (λ πc=πa → cong₁ π (sym (reflexive (transp-eq₁ b (perm-injective π πc=πa)))))
+    (λ πc≠πa πc=πb → cong₁ π (sym (reflexive (transp-eq₂ (perm-injective' π πc≠πa) (perm-injective π πc=πb)))))
+    (λ πc≠πa πc≠πb → cong₁ π (sym (reflexive (transp-eq₃ (perm-injective' π πc≠πa) (perm-injective' π πc≠πb)))))
+
+  transp-distributive : ∀ a b c d e →
+    transp a b (transp c d e) ≈ transp (transp a b c) (transp a b d) (transp a b e)
+  transp-distributive a b c d e = sym (transp-distributive-perm ⟦ Swap a b ⟧ c d e)
+
+
+  -- We can think of FinPerm as codes for finite permutations.  In
+  -- order to define the group of finite permutation we can take, at
+  -- least, two approaches: let the carrier be FinPerm and then the
+  -- equality would be the equality of the associated permutations or,
+  -- and this is what we prefer, take the carrier as the image of ⟦_⟧.
+  -- Yet another conception would be using finite maps where we have
+  -- {a ↦ b , b ↦ a} for (transp a b).
+  
+  -- The inverse of a FinPerm swaps the swaps and also
+  -- swaps the inverses in the compositions.
   _⁻¹ᵖ : (p : FinPerm) → ∃ (λ q → (⟦ p ⟧ ⁻¹) ≈ₚ ⟦ q ⟧)
   Id ⁻¹ᵖ = Id , λ _ → refl
+  Swap a b ⁻¹ᵖ = Swap a b , (λ _ → refl)
   Comp p q ⁻¹ᵖ with  p ⁻¹ᵖ | q ⁻¹ᵖ
   ... | p' , eqp | q' , eqq = Comp q' p' , λ x →
       begin
@@ -309,7 +361,10 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       ≈⟨ eqp (f ⟦ q' ⟧ x) ⟩
       (f ⟦ p' ⟧ (f ⟦ q' ⟧ x)) ∎
     where open ≈-Reasoning setoid
-  Swap a b ⁻¹ᵖ = (Swap a b) , (λ x → refl)
+
+  -- This is our carrier, we use capital letters to refer to the
+  -- image of ⟦_⟧ on the whole FinPerm. Notice that we could have
+  -- used the _∋-Image_ type.
 
   PERM : Set (ℓ ⊔ ℓ')
   PERM = Σ[ p ∈ Perm ] (Σ[ q ∈ FinPerm ] ( p ≈ₚ ⟦ q ⟧))
@@ -355,6 +410,9 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   toPERM-eq' : ∀ p → proj₁ (toPERM p) ≈ₚ ⟦ p ⟧
   toPERM-eq' p x rewrite toPERM-eq p = refl
 
+  toPERM-eq'' : ∀ (π : PERM) → proj₁ π ≈ₚ proj₁ (toPERM (proj₁ (proj₂ π)))
+  toPERM-eq'' π x rewrite toPERM-eq (proj₁ (proj₂ π)) = proj₂ (proj₂ π) x
+
   Perm-A : Group (ℓ ⊔ ℓ') (ℓ ⊔ ℓ')
   Perm-A = record
             { Carrier = PERM
@@ -382,6 +440,18 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
               ; ⁻¹-cong = λ {f} {g} → Group.⁻¹-cong Sym-A {proj₁ f} {proj₁ g}
               }
             }
+
+  open Membership A-setoid
+  open List-Extra.Extra setoid
+
+  -- Ideally we would like to have a function that removes redundant
+  -- information from FinPerms. Since the set of atoms appearing in
+  -- FinPerm is computable and we can test if each of them is in the
+  -- domain of the permutation, we can keep only those. Then we compute
+  -- the composition of permutations.
+
+  -- TODO: define a function norm : FinPerm → FinPerm that removes
+  -- redundant information and prove it correct.
 
   _≡A_ = _≡_ {A = Carrier}
 
@@ -415,32 +485,6 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   atomsₚ : PERM → List Carrier
   atomsₚ = atoms' ∘ proj₁ ∘ proj₂
 
-  test : ∀ a → atoms' (Swap a a) ≡ []
-  test a = filter-none (∈-dom? (Swap a a))
-    ((λ x → x ((transp-id a a a refl))) ∷
-    ((λ x → x ((transp-id a a a refl)))) ∷ [])
-    where
-    open import Data.List.Properties
-    open import Data.List.Relation.Unary.All
-    open import Relation.Unary renaming (_∈_ to _sats_)
-
-  norm : FinPerm → FinPerm
-  norm p = go (atoms' p)
-    where
-    go : List Carrier → FinPerm
-    go [] = Id
-    go (a ∷ []) = Swap a (f ⟦ p ⟧ a)
-    go (a ∷ b ∷ as) = Comp (Swap a (f ⟦ p ⟧ a)) (go (b ∷ as))
-
-  -- atoms-norm : ∀ p → atoms (norm p) ≡ atoms' (norm p)
-  -- atoms-norm Id = _≡_.refl
-  -- atoms-norm (Comp p p₁) = {!!}
-  -- atoms-norm (Swap a b) = {!!}
-
-  -- We can use norm to prove Thm. 1.15: by construction
-  -- we have π a ≠ a and π a' ≠ a' for (Swap a b) ∈ norm;
-  -- moreover we removed every (Swap a a).
-
   ∈-dom-resp-≈ : (p : FinPerm) → (_∈-dom ⟦ p ⟧) Respects _≈_
   ∈-dom-resp-≈ p {x} {y} x≈y x∈domp y∉domp = x∈domp x∉domp
     where x∉domp : f ⟦ p ⟧ x ≈ x
@@ -464,19 +508,15 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   ∉-atoms'-∉ q {a} a∉atq with ∈-atoms? q a
   ... | yes a∈atq = decidable-stable (f ⟦ q ⟧ a ≟ a) (p a∉atq)
     where
-    open import Data.List.Membership.Setoid.Properties
-    open import List-Extra
+    open List-Extra
     p = ∉-filter⁻ setoid (∈-dom? q) (∈-dom-resp-≈ q) {xs = atoms q} a∈atq
   ... | no a∉atq = ∉-atoms-∉ {q} a∉atq
 
   ∉-∉-atoms : ∀ q {a} → a ∉-dom ⟦ q ⟧ → a ∉ atoms' q
   ∉-∉-atoms p a∉dom a∈at = proj₂ q a∉dom
-    where open import Data.List.Membership.Setoid.Properties
-          q = ∈-filter⁻ setoid (∈-dom? p) (∈-dom-resp-≈ p) {xs = atoms p} a∈at
+    where q = ∈-filter⁻ setoid (∈-dom? p) (∈-dom-resp-≈ p) {xs = atoms p} a∈at
 
-
--- FIXME: move this to some more appropiate place.
-  open import Relation.Unary
+-- TODO: move this to Setoid-Extra
   _↔_ : ∀ {ℓP ℓQ} → (P : Pred Carrier ℓP) → (Q : Pred Carrier ℓQ) → Set (ℓ ⊔ ℓP ⊔ ℓQ)
   P ↔ Q = ∀ a → (P a → Q a) × (Q a → P a)
 
@@ -485,13 +525,6 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
                            λ a∈domp a∉domπ → a∈domp (trans (sym (eq a)) a∉domπ)
 
   ∉-PERM : (P : PERM) → (_∉-dom (proj₁ P)) ↔ (_∉-dom ⟦ proj₁ (proj₂ P) ⟧)
-  ∉-PERM (π , p , eq) a = (λ x → trans (sym (eq a)) x) , λ x → trans (eq a) x
+  ∉-PERM (π , p , eq) a = trans (sym (eq a)) , trans (eq a)
 
--- module Ex where
---   open import Data.Nat
---   open import Data.Nat.Properties
---   open Perm ≡-decSetoid
-
---   test₁ : norm (Swap 0 0) ≡ Id
---   test₁ = _≡_.refl
 

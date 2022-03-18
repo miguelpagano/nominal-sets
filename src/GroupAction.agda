@@ -1,15 +1,13 @@
-------------------------------------------------------------
 -- Nominal Sets
+-- ============
 --
 -- Action of a Group in a Set. G-Sets and Equivariant
 -- functions.
-------------------------------------------------------------
-open import Level
-open import Algebra hiding (Inverse)
-open import Relation.Binary
 
+open import Level
 module GroupAction where
 
+open import Algebra hiding (Inverse)
 open import Data.Product
 open import Data.Product.Relation.Binary.Pointwise.NonDependent
 open import Function
@@ -19,57 +17,78 @@ open import Function.Construct.Symmetry renaming (inverse to _⁻¹)
 open import Relation.Binary
 import Relation.Binary.Reasoning.Setoid as ≈-Reasoning
 
-open Setoid
-open Group
-
 private
  variable
   cℓ ℓ ℓ₁ ℓ₂ ℓ₃ ℓ₄ ℓ₅ ℓ₆ : Level
 
+open Setoid
+
 module G-Action (A : Setoid ℓ₁ ℓ₂) (G : Group cℓ ℓ) where
 
-  record IsAction
-    (⊙ₐ : Func (setoid G ×ₛ A) A) : Set (ℓ₁ ⊔ ℓ₂ ⊔ cℓ ⊔ ℓ) where
+-- A function $\mathit{F} \colon G \times A\to A$ is an
+-- \emph{action} if
+-- * $F(\epsilon,\_) = \mathit{id}$ and
+-- * $F(g,F(h,x)) = F(g\cdot h,x)$.
+--
+-- We assume that $F$ preserves the equality of the setoids
+-- (of the group) and of the set on which it acts; in agda
+-- this is given by Func.
+  open Group
+
+  record IsAction (F : Func (setoid G ×ₛ A) A) : Set (ℓ₁ ⊔ ℓ₂ ⊔ cℓ ⊔ ℓ) where
 
     infix 8 _∙ₐ_
     private
        _≈A_ = _≈_ A
        _≈G_ = _≈_ G
 
+-- We introduce a more conventional syntax for the action as
+-- an infix operator.
+
     _∙ₐ_ : Carrier G → Carrier A → Carrier A
-    g ∙ₐ x = Func.f ⊙ₐ (g , x)
+    g ∙ₐ x = Func.f F (g , x)
 
     open module G = Group G
     field
       idₐ : ∀ x → (G.ε ∙ₐ x) ≈A x
-      ∘ₐ : ∀ g g' x → (g' ∙ₐ (g ∙ₐ x)) ≈A ((g G.∙ g') ∙ₐ x)
+      ∘ₐ : ∀ g g' x → (g' ∙ₐ (g ∙ₐ x)) ≈A ((g' G.∙ g) ∙ₐ x)
 
     congˡ : ∀ {g} {g'} x → g ≈G g' → (g ∙ₐ x) ≈A (g' ∙ₐ x)
-    congˡ x g≈g' = Func.cong ⊙ₐ (g≈g' , refl A)
+    congˡ x g≈g' = Func.cong F (g≈g' , refl A)
 
     congʳ : ∀ g {x} {x'} → x ≈A x' → (g ∙ₐ x) ≈A (g ∙ₐ x')
-    congʳ g x≈x' = Func.cong ⊙ₐ (refl G , x≈x')
+    congʳ g x≈x' = Func.cong F (refl G , x≈x')
+
+
+-- An Action is given by the function (preserving equalities) and
+-- the proof that it satisfies the aforementioned laws.
 
   record Action : Set (ℓ₁ ⊔ ℓ₂ ⊔ cℓ ⊔ ℓ) where
-    G-setoid = Group.setoid G
-    field
-      ⊙ₐ : Func (G-setoid ×ₛ A) A
-      isAction : IsAction ⊙ₐ
-    open IsAction isAction public
+
     private
+      G-setoid = Group.setoid G
       _≈A_ = _≈_ A
       _≈G_ = _≈_ G
 
-    infix 9 _′
-    _′ = G._⁻¹
+    field
+      action : Func (G-setoid ×ₛ A) A
+      isAction : IsAction action
+
+    open IsAction isAction public
+    private
+      infix 9 _′
+      _′ = G._⁻¹
+
     open ≈-Reasoning A
 
+-- It is straightforward to verify $g^{ -1} \cdot (g \cdot x) = x$,
+-- and the analogous one.
     _∘ₐ_-inv-idˡ : ∀ g x → (g ′ ∙ₐ (g ∙ₐ x)) ≈A x
     _∘ₐ_-inv-idˡ g x = begin
       (g ′ ∙ₐ (g ∙ₐ x))
       ≈⟨ ∘ₐ g (g ′) x  ⟩
-      ((g G.∙ g ′) ∙ₐ x)
-      ≈⟨ congˡ x (G.inverseʳ g) ⟩
+      ((g ′) G.∙ g) ∙ₐ x
+      ≈⟨ congˡ x (G.inverseˡ g) ⟩
       (G.ε ∙ₐ x)
       ≈⟨ idₐ x ⟩
       x ∎
@@ -77,9 +96,9 @@ module G-Action (A : Setoid ℓ₁ ℓ₂) (G : Group cℓ ℓ) where
     _∘ₐ_-inv-idʳ : ∀ g x → (g ∙ₐ (g ′ ∙ₐ x)) ≈A x
     _∘ₐ_-inv-idʳ g x = begin
       (g ∙ₐ (g ′ ∙ₐ x))
-      ≈⟨ ∘ₐ (g ′) g x  ⟩
-      ((g ′ G.∙ g ) ∙ₐ x)
-      ≈⟨ congˡ x (G.inverseˡ g) ⟩
+      ≈⟨ ∘ₐ (g ′) g x ⟩
+      ((g  G.∙ g ′ ) ∙ₐ x)
+      ≈⟨ congˡ x (G.inverseʳ g) ⟩
       (G.ε ∙ₐ x)
       ≈⟨ idₐ x ⟩
       x ∎
@@ -89,11 +108,14 @@ private
  variable
   G : Group cℓ ℓ
 
+-- A G-Set is a set(oid) together with an action.
 record G-Set {cℓ ℓ ℓ₁ ℓ₂ : Level} (G : Group cℓ ℓ) : Set (suc (ℓ₁ ⊔ ℓ₂ ⊔ cℓ ⊔ ℓ)) where
   field
     set : Setoid ℓ₁ ℓ₂
     act : Action {cℓ = cℓ} {ℓ} set G
 
+-- A (equality preserving) function between two G-sets is \emph{equivariant}
+-- if it commutes with the action.
 IsEquivariant :
   {A : Setoid ℓ₁ ℓ₂} →
   {B : Setoid ℓ₃ ℓ₄} →
@@ -126,6 +148,7 @@ private
   B : G-Set {ℓ₁ = ℓ₃} {ℓ₂ = ℓ₄} G
   C : G-Set {ℓ₁ = ℓ₅} {ℓ₂ = ℓ₆} G
 
+-- The identity is an equivariant function.
 Id : Equivariant A A
 Id {A = A} =  record
   { F = idₛ A-setoid
@@ -133,6 +156,7 @@ Id {A = A} =  record
   }
   where A-setoid = set A
 
+-- The composition of equivariants functions is also equivariant.
 _∘G_ : Equivariant A B → Equivariant B C → Equivariant A C
 _∘G_ {A = A} {B = B} {C = C} H K = record {
     F = F H ∘ₛ F K
@@ -151,14 +175,14 @@ _∘G_ {A = A} {B = B} {C = C} H K = record {
         open Action (act B) renaming (_∙ₐ_ to _∙B_)
         open Action (act C) renaming (_∙ₐ_ to _∙C_)
 
--- Binary Product (do we need/want more?)
+-- Binary Product (do we need/want more?) of G-Sets.
 GSet-× : G-Set {ℓ₁ = ℓ₁} {ℓ₂ = ℓ₂} G → G-Set {ℓ₁ = ℓ₃} {ℓ₄} G → G-Set {ℓ₁ = ℓ₁ ⊔ ℓ₃} {ℓ₂ = ℓ₂ ⊔ ℓ₄} G
 GSet-× A B = record
   { set = set A ×ₛ set B
   ; act = record
-    { ⊙ₐ = record
+    { action = record
       { f =  λ (g , (a , b)) → (g ∙A.∙ₐ a , (g ∙B.∙ₐ b))
-      ; cong = λ (g≈g' , a≈a' , b≈b') → Func.cong ∙A.⊙ₐ (g≈g' , a≈a') ,  Func.cong ∙B.⊙ₐ (g≈g' , b≈b')
+      ; cong = λ (g≈g' , a≈a' , b≈b') → Func.cong ∙A.action (g≈g' , a≈a') ,  Func.cong ∙B.action (g≈g' , b≈b')
       }
     ; isAction = record
       { idₐ = λ x → ∙A.idₐ (proj₁ x) , ∙B.idₐ (proj₂ x)
@@ -169,7 +193,7 @@ GSet-× A B = record
   where open module ∙A = Action (act A)
         open module ∙B = Action (act B)
 
--- Projections
+-- Projections are equivariants
 π₁ : Equivariant (GSet-× A B) A
 π₁ {A = A} {B = B} = record
   {  F =  record
@@ -198,7 +222,7 @@ GSet-× A B = record
         open Setoid (set B) renaming (Carrier to B'; _≈_ to  _≈B_)
         B-setoid = set B
 
--- Product morphism
+-- Product morphism is equivariant.
 ⟨_,_⟩ : Equivariant C A → Equivariant C B → Equivariant C (GSet-× A B)
 ⟨_,_⟩  {C = C} {A = A} {B = B} H K = record
   {  F =  record
@@ -232,12 +256,13 @@ open Equivariant
 -- Equalities
 -- eq₁ : (H : Equivariant C A) → (K : Equivariant C B) → ⟨ H , K ⟩ ∘G π₁ = H
 
--- Discrete G-Set
+-- Any setoid can be turned in a G-Set by letting $F(g,x) = x$.
+-- This G-Set is called the discrete G-Set.
 Δ : (A : Setoid ℓ₁ ℓ₂) → G-Set G
 Δ A = record
   { set = A
   ; act = record
-     { ⊙ₐ = record
+     { action = record
        { f = proj₂
        ; cong = proj₂
        }

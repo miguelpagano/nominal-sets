@@ -8,7 +8,6 @@
 --   https://github.com/miguelpagano/universal-algebra
 ------------------------------------------------------------
 module Setoid-Extra where
-
 open import Data.Fin hiding (_+_)
 open import Data.Product
 open import Data.Product.Relation.Binary.Pointwise.NonDependent using (×-setoid)
@@ -19,7 +18,19 @@ open import Function.Equality as FE renaming (_∘_ to _∘ₛ_) hiding (setoid)
 open import Relation.Binary
 import Relation.Binary.Reasoning.Setoid as EqR
 import Relation.Binary.PropositionalEquality as PE
+open import Relation.Nullary.Negation
 open import Relation.Unary
+
+module Inequality {l₁ l₂} (A : Setoid l₁ l₂) where
+  open Setoid A
+  ≉-sym : ∀ {a b} → a ≉ b → b ≉ a
+  ≉-sym a≠b b=a = contradiction (sym b=a) a≠b
+
+  ≉-resp-≈₁ : ∀ {a b c} → a ≈ b → b ≉ c → a ≉ c
+  ≉-resp-≈₁ a=b b≠c a=c = contradiction (trans (sym a=b) a=c) b≠c
+
+  ≉-resp-≈₂ : ∀ {a b c} → b ≈ c → a ≉ b → a ≉ c
+  ≉-resp-≈₂ b=c a≠b a=c = contradiction (trans a=c (sym b=c)) a≠b
 
 {- Carrier -}
 ∥_∥ : ∀ {l₁ l₂} → (Setoid l₁ l₂) → Set l₁
