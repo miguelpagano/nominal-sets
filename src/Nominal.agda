@@ -170,13 +170,9 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
     record Nominal (X-set : G-Set {cℓ = (ℓ ⊔ ℓ') } {ℓ = ℓ ⊔ ℓ'} {ℓ₁ = ℓx} {ℓ₂ = ℓx'} 𝔸) :
                           Set (suc ℓ ⊔ suc ℓ' ⊔ ℓx ⊔ ℓx' ⊔ suc ℓP) where
       open G-Set X-set
-      open G-Action.Action act
-      open Inverse
-
-      open Func
       open supp {ℓP = ℓP} {X-set = X-set}
 
       X = Setoid.Carrier set
 
       field
-        sup : (x : X) → (P : SetoidPredicate {ℓ₃ = ℓP} setoid) → finite P → P supports x
+        sup : (x : X) → Σ[ P ∈ SetoidPredicate {ℓ₃ = ℓP} setoid ] (finite P × P supports x)
