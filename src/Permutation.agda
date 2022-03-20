@@ -312,7 +312,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   -- the domain of ⟦ p ⟧ is finite.
   ⟦_⟧ : FinPerm → Perm
   ⟦ Id ⟧ = idₚ setoid
-  ⟦ Comp p q ⟧ = ⟦ p ⟧ ∘ₚ ⟦ q ⟧
+  ⟦ Comp p q ⟧ =  ⟦ q ⟧ ∘ₚ ⟦ p ⟧
   ⟦ Swap a b ⟧ = record
     { f = transp a b
     ; f⁻¹ = transp a b
@@ -355,11 +355,11 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   Comp p q ⁻¹ᵖ with  p ⁻¹ᵖ | q ⁻¹ᵖ
   ... | p' , eqp | q' , eqq = Comp q' p' , λ x →
       begin
-      f⁻¹ ⟦ p ⟧ (f⁻¹ ⟦ q ⟧ x)
-      ≈⟨ cong₂ ⟦ p ⟧ (eqq x) ⟩
-      f⁻¹ ⟦ p ⟧ (f ⟦ q' ⟧ x)
-      ≈⟨ eqp (f ⟦ q' ⟧ x) ⟩
-      (f ⟦ p' ⟧ (f ⟦ q' ⟧ x)) ∎
+      f⁻¹ ⟦ q ⟧ (f⁻¹ ⟦ p ⟧ x)
+      ≈⟨ cong₂ ⟦ q ⟧ (eqp x) ⟩
+      f⁻¹ ⟦ q ⟧ (f ⟦ p' ⟧ x)
+      ≈⟨ eqq (f ⟦ p' ⟧ x) ⟩
+      (f ⟦ q' ⟧ (f ⟦ p' ⟧ x)) ∎
     where open ≈-Reasoning setoid
 
   -- This is our carrier, we use capital letters to refer to the
@@ -385,9 +385,9 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
 
   _∘P_ : Op₂ PERM
   (p , code , eq) ∘P (q , code' , eq') =
-      p ∘ₚ q
+      q ∘ₚ p
     , Comp code code'
-    , λ x → trans (cong₁ q (eq x)) (eq' (f ⟦ code ⟧ x))
+    , λ x → trans (cong₁ p (eq' x)) (eq (f ⟦ code' ⟧ x))
 
   SWAP : Carrier → Carrier → PERM
   SWAP a b = ⟦ Swap a b ⟧ , Swap a b , λ x → refl
@@ -429,14 +429,14 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
                       ; sym = λ x → sym ∘ x
                       ; trans = λ x x₁ x₂ → trans (x x₂) (x₁ x₂)
                     } ;
-                    ∙-cong = λ {f} {g} {h} {k} →
-                      Group.∙-cong Sym-A {proj₁ f} {proj₁ g} {proj₁ h} {proj₁ k}
+                    ∙-cong = λ {f} {g} {h} {k} f=g h=k →
+                      Group.∙-cong Sym-A {proj₁ h} {proj₁ k} {proj₁ f} {proj₁ g} h=k f=g
                   }
                   ; assoc = λ _ _ _ _ → refl
                   }
                 ; identity = (λ _ _ → refl) , λ _ _ → refl
                 }
-              ; inverse = Inverse.inverseˡ ∘ proj₁  , Inverse.inverseʳ ∘ proj₁
+              ; inverse = Inverse.inverseʳ ∘ proj₁ , Inverse.inverseˡ ∘ proj₁
               ; ⁻¹-cong = λ {f} {g} → Group.⁻¹-cong Sym-A {proj₁ f} {proj₁ g}
               }
             }
@@ -495,11 +495,11 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   ∉-atoms-∉! {Swap b c} {a} a∉at =
     transp-eq₃ (∉-∷⁼ (Any.here refl) a∉at)
                (∉-∷⁼ (Any.there (Any.here refl)) a∉at)
-  ∉-atoms-∉! {Comp p q} {a} a∉at = goal
+  ∉-atoms-∉! {Comp p q} {a} a∉at = goal -- goal
     where
-    a∉p = ∉-atoms-∉! {p} {a} (∉-++⁻ˡ (atoms p) a∉at)
-    goal : a ∉-dom! (⟦ p ⟧ ∘ₚ ⟦ q ⟧)
-    goal rewrite a∉p = ∉-atoms-∉! {q} (∉-++⁻ʳ (atoms p) a∉at)
+    a∉q = ∉-atoms-∉! {q} {a} (∉-++⁻ʳ (atoms p) a∉at)
+    goal : a ∉-dom! (⟦ q ⟧ ∘ₚ ⟦ p ⟧)
+    goal rewrite a∉q = ∉-atoms-∉! {p} (∉-++⁻ˡ (atoms p) a∉at)
 
   ∉-atoms-∉ : ∀ {q a} → a ∉ atoms q → a ∉-dom ⟦ q ⟧
   ∉-atoms-∉ {q} {a} a∉at = reflexive (∉-atoms-∉! {q} a∉at)
@@ -526,5 +526,3 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
 
   ∉-PERM : (P : PERM) → (_∉-dom (proj₁ P)) ↔ (_∉-dom ⟦ proj₁ (proj₂ P) ⟧)
   ∉-PERM (π , p , eq) a = trans (sym (eq a)) , trans (eq a)
-
-

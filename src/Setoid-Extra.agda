@@ -8,16 +8,20 @@
 --   https://github.com/miguelpagano/universal-algebra
 ------------------------------------------------------------
 module Setoid-Extra where
-open import Data.Fin hiding (_+_)
+
+open import Level renaming (suc to lsuc ; zero to lzero)
+
+open import Data.Empty
 open import Data.Product
 open import Data.Product.Relation.Binary.Pointwise.NonDependent using (×-setoid)
 open import Data.Sum
-open import Level renaming (suc to lsuc ; zero to lzero)
+open import Data.Unit
 open import Function as F hiding (_⟶_)
 open import Function.Equality as FE renaming (_∘_ to _∘ₛ_) hiding (setoid)
 open import Relation.Binary
 import Relation.Binary.Reasoning.Setoid as EqR
 import Relation.Binary.PropositionalEquality as PE
+open import Relation.Nullary
 open import Relation.Nullary.Negation
 open import Relation.Unary
 
@@ -83,7 +87,6 @@ WellDef S P = ∀ {x y : Carrier S } → _≈_ S x y → P x → P y
 ∩-WellDef P-wd Q-wd a≈b (pa , qa) = P-wd a≈b pa , Q-wd a≈b qa
 
 {- A binary relation over a setoid should be even with respect to the equality -}
-open import Data.Product
 WellDefRel : ∀ {ℓ₁ ℓ₂ ℓ₃} → (S : Setoid ℓ₁ ℓ₂) → Rel (Carrier S) ℓ₃ → Set _
 WellDefRel S R = WellDef (×-setoid S S) (λ {(a , b) → R a b})
 
@@ -106,25 +109,42 @@ record SetoidPredicate {ℓ₁ ℓ₂ ℓ₃} (S : Setoid ℓ₁ ℓ₂) :
     predicate   : Pred (Carrier S) ℓ₃
     predWellDef : WellDef S predicate
 
-  syntax predicate P a = a sats P
+  syntax predicate P a = a ∈ₛ P
+  no-sats : Pred (Carrier S) ℓ₃
+  no-sats a = ¬ predicate a
+  syntax no-sats P a = a ∉ₛ P
 
 open SetoidPredicate
 
-∪-SetoidPred : ∀ {ℓ₁ ℓ₂ ℓ₃ ℓ₄} {S : Setoid ℓ₁ ℓ₂} →
+_∪ₛ_ : ∀ {ℓ₁ ℓ₂ ℓ₃ ℓ₄} {S : Setoid ℓ₁ ℓ₂} →
                SetoidPredicate {ℓ₃ = ℓ₃} S → SetoidPredicate {ℓ₃ = ℓ₄} S  →
                SetoidPredicate {ℓ₃ = ℓ₃ ⊔ ℓ₄} S
-∪-SetoidPred {S = S} P Q = record {
+_∪ₛ_ {S = S} P Q = record {
                              predicate = predicate P ∪ predicate Q
                            ; predWellDef = ∪-WellDef {S = S} (predWellDef P)  (predWellDef Q)
                            }
 
-∩-SetoidPred : ∀ {ℓ₁ ℓ₂ ℓ₃ ℓ₄} {S : Setoid ℓ₁ ℓ₂} →
+_∩ₛ_ : ∀ {ℓ₁ ℓ₂ ℓ₃ ℓ₄} {S : Setoid ℓ₁ ℓ₂} →
                SetoidPredicate {ℓ₃ = ℓ₃} S → SetoidPredicate {ℓ₃ = ℓ₄} S  →
                SetoidPredicate {ℓ₃ = ℓ₃ ⊔ ℓ₄} S
-∩-SetoidPred {S = S} P Q = record {
+_∩ₛ_ {S = S} P Q = record {
                              predicate = predicate P ∩ predicate Q
                            ; predWellDef = ∩-WellDef {S = S} (predWellDef P)  (predWellDef Q)
                            }
+
+⊥ₛ : ∀ {ℓ₁ ℓ₂} {S : Setoid ℓ₁ ℓ₂} → SetoidPredicate S
+predicate ⊥ₛ = ∅
+predWellDef ⊥ₛ = F.const F.id
+
+⊤ₛ : ∀ {ℓ₁ ℓ₂} {S : Setoid ℓ₁ ℓ₂} → SetoidPredicate S
+predicate ⊤ₛ = F.const ⊤
+predWellDef ⊤ₛ = F.const F.id
+
+[_]ₛ : ∀ {ℓ₁ ℓ₂} {S : Setoid ℓ₁ ℓ₂} → (a : Carrier S) → SetoidPredicate {ℓ₃ = ℓ₂} S
+[_]ₛ {S = S} a = record { predicate = λ x → x ≈S a
+                        ; predWellDef = λ x=y x=a → trans-S (sym-S x=y) x=a
+                        }
+     where open Setoid S renaming (_≈_ to _≈S_;trans to trans-S;sym to sym-S)
 
 Subset : ∀ {ℓ₁ ℓ₂} → (A : Set ℓ₁) → (Pred A ℓ₂) → Set _
 Subset A P = Σ[ a ∈ A ] (P a)
