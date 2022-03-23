@@ -179,6 +179,10 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
     -- TODO: move this to Setoid-Extra.
     finite : (P : SetoidPredicate {ℓ₃ = ℓP} setoid) → Set (ℓ ⊔ ℓ' ⊔ ℓP)
     finite P = Σ[ as ∈ List Carrier ] (predicate P ⊆ (_∈ as))
+
+    𝒫f : {ℓpred : Level} → Set (suc (ℓ ⊔ ℓ' ⊔ ℓpred))
+    𝒫f {ℓpred} = Σ (SetoidPredicate {ℓ₃ = ℓpred} setoid) finite
+
     variable
       ℓ₃ ℓ₄ : Level
       S : Setoid ℓ ℓ'
@@ -215,6 +219,7 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
     open G-Action.Action
     open Func
     open Inverse
+
     𝔸-set : G-Set 𝔸
     set 𝔸-set = setoid
     f (action (act 𝔸-set)) (π , a) = f (proj₁ π) a
@@ -224,3 +229,7 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
     𝔸-set-nominal : Nominal 𝔸-set
     sup (𝔸-set-nominal) x = [ x ]ₛ , ([ x ] , here) , λ a b a≠x b≠x → reflexive (transp-eq₃ (≉-sym a≠x) (≉-sym b≠x))
       where open Inequality setoid
+
+    -- 𝒫f-set : G-Set 𝔸
+    -- set 𝒫f-set = {!!}
+    -- act 𝒫f-set = {!!}

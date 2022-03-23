@@ -111,7 +111,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   open import Data.Empty
 
   open Inequality setoid
-  
+
   open Inverse
 
   perm-injective : (π : Perm) → Injective _≈_ _≈_ (f π)
@@ -346,7 +346,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   -- and this is what we prefer, take the carrier as the image of ⟦_⟧.
   -- Yet another conception would be using finite maps where we have
   -- {a ↦ b , b ↦ a} for (transp a b).
-  
+
   -- The inverse of a FinPerm swaps the swaps and also
   -- swaps the inverses in the compositions.
   _⁻¹ᵖ : (p : FinPerm) → ∃ (λ q → (⟦ p ⟧ ⁻¹) ≈ₚ ⟦ q ⟧)

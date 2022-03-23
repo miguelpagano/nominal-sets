@@ -16,7 +16,7 @@ open import Data.Product
 open import Data.Product.Relation.Binary.Pointwise.NonDependent using (×-setoid)
 open import Data.Sum
 open import Data.Unit
-open import Function as F hiding (_⟶_)
+open import Function as F hiding (_⟶_;_↔_)
 open import Function.Equality as FE renaming (_∘_ to _∘ₛ_) hiding (setoid)
 open import Relation.Binary
 import Relation.Binary.Reasoning.Setoid as EqR
@@ -161,3 +161,16 @@ SubSetoid S P = record
     ; trans = trans S
     }
   }
+
+-- module _ {ℓ₁ ℓ₂ ℓ₃} (S : Setoid ℓ₁ ℓ₂) where
+
+--   _↔_ : ∀ {ℓa} {A : Set ℓa} → (P Q : Pred A ℓ₃) → Set {!!}
+--   P ↔ Q = P ⊆ Q × Q ⊆ P
+
+--   _↔ₛ_ : (P Q : SetoidPredicate {ℓ₃ = ℓ₃} S) → Set {!!}
+--   P ↔ₛ Q = predicate P ↔ predicate Q
+
+--   PredSetoid : Setoid {!!} {!!}
+--   Carrier PredSetoid = SetoidPredicate {ℓ₃ = ℓ₃} S
+--   _≈_ PredSetoid = {!!}
+--   isEquivalence PredSetoid = {!!}
