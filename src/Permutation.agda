@@ -517,12 +517,10 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     where q = ∈-filter⁻ setoid (∈-dom? p) (∈-dom-resp-≈ p) {xs = atoms p} a∈at
 
 -- TODO: move this to Setoid-Extra
-  _↔_ : ∀ {ℓP ℓQ} → (P : Pred Carrier ℓP) → (Q : Pred Carrier ℓQ) → Set (ℓ ⊔ ℓP ⊔ ℓQ)
-  P ↔ Q = ∀ a → (P a → Q a) × (Q a → P a)
 
   ∈-PERM : (P : PERM) → (_∈-dom (proj₁ P)) ↔ (_∈-dom ⟦ proj₁ (proj₂ P) ⟧)
-  ∈-PERM (π , p , eq) a = (λ a∈domπ a∉domp → a∈domπ (trans (eq a) a∉domp)) ,
-                           λ a∈domp a∉domπ → a∈domp (trans (sym (eq a)) a∉domπ)
+  ∈-PERM (π , p , eq) = (λ {a} a∈domπ a∉domp → a∈domπ (trans (eq a) a∉domp)) ,
+                          λ {a} a∈domp a∉domπ → a∈domp (trans (sym (eq a)) a∉domπ)
 
   ∉-PERM : (P : PERM) → (_∉-dom (proj₁ P)) ↔ (_∉-dom ⟦ proj₁ (proj₂ P) ⟧)
-  ∉-PERM (π , p , eq) a = trans (sym (eq a)) , trans (eq a)
+  ∉-PERM (π , p , eq) = (λ {a} → trans (sym (eq a))) , λ {a} → trans (eq a)

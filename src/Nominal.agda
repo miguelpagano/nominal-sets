@@ -9,8 +9,10 @@ open import Algebra hiding (Inverse)
 open import Data.Empty
 open import Data.List
 import Data.List.Membership.DecSetoid as Membership
+open import Data.List.Membership.Setoid.Properties
 open import Data.List.Relation.Unary.Any
 open import Data.Product hiding (map)
+open import Data.Sum
 open import Function
 open import Relation.Binary
 open import Relation.Binary.PropositionalEquality using (_≡_;≢-sym)
@@ -109,11 +111,11 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
 
     -- Both notions are equivalent.
       imp : is-supp ⊆ is-supp'
-      imp pred π inv = pred π (λ {a} Pa → proj₂ (∉-PERM π a)
+      imp pred π inv = pred π (λ {a} Pa → proj₂ (∉-PERM π)
          (∉-atoms'-∉ (proj₁ (proj₂ π)) (inv {a} Pa)))
 
       imp' : is-supp' ⊆ is-supp
-      imp' pred Π@(π , p , _) inv = pred Π (λ {a} Pa → ∉-∉-atoms p (proj₁ (∉-PERM Π a) ((inv {a} Pa))))
+      imp' pred Π@(π , p , _) inv = pred Π (λ {a} Pa → ∉-∉-atoms p (proj₁ (∉-PERM Π) ((inv {a} Pa))))
 
     -- Finally, the characterization in terms of swapping: P supports x if,
     -- for every a and b in the complement of P, the action of (SWAP a b) in x
@@ -153,7 +155,6 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
          x ∎
         where open Setoid set
               open ≈-Reasoning set
-              open import Data.List.Membership.Setoid.Properties
               predp : predicate P ⊆ (_∉ atoms p)
               predp {a} Pa a∈atp = pred Pa (∈-++⁺ˡ setoid a∈atp)
               predq : predicate P ⊆ (_∉ atoms q)
@@ -198,6 +199,13 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
     ∩-finite : finite P → finite Q → finite (P ∩ₛ Q)
     ∩-finite {P = P} (xs , P⊆xs) _ = xs , P⊆xs ∘ proj₁
 
+    ∪-finite : finite P → finite Q → finite (P ∪ₛ Q)
+    ∪-finite {P = P} {Q = Q} (xs , P⊆xs) (ys , Q⊆ys) = (xs ++ ys) , inclusion
+      where
+      inclusion : predicate (P ∪ₛ Q) ⊆ (_∈ xs ++ ys)
+      inclusion {x = x} (inj₁ x∈P) = ∈-++⁺ˡ setoid (P⊆xs x∈P)
+      inclusion {x = x} (inj₂ x∈Q) = ∈-++⁺ʳ setoid xs (Q⊆ys x∈Q)
+
     -- A Nominal set is a G-Set all whose elements are finitely supported.
     record Nominal (X-set : G-Set {cℓ = (ℓ ⊔ ℓ') } {ℓ = ℓ ⊔ ℓ'} {ℓ₁ = ℓx} {ℓ₂ = ℓx'} 𝔸) :
                           Set (suc ℓ ⊔ suc ℓ' ⊔ ℓx ⊔ ℓx' ⊔ suc ℓP) where
@@ -211,6 +219,10 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
 
     open Nominal
 
+    -- Nominal sets
+    -- ============
+
+    - Discrete G-set
     Δ-nominal : Nominal (Δ S)
     sup (Δ-nominal {S = S}) x = ⊥ₛ , ⊥-finite , (λ _ _ _ _ → S-refl {x = x})
       where open Setoid S renaming (refl to S-refl)
@@ -220,6 +232,7 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
     open Func
     open Inverse
 
+    -- The set of atoms is both a G-set and a nominal set.
     𝔸-set : G-Set 𝔸
     set 𝔸-set = setoid
     f (action (act 𝔸-set)) (π , a) = f (proj₁ π) a
@@ -229,7 +242,3 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
     𝔸-set-nominal : Nominal 𝔸-set
     sup (𝔸-set-nominal) x = [ x ]ₛ , ([ x ] , here) , λ a b a≠x b≠x → reflexive (transp-eq₃ (≉-sym a≠x) (≉-sym b≠x))
       where open Inequality setoid
-
-    -- 𝒫f-set : G-Set 𝔸
-    -- set 𝒫f-set = {!!}
-    -- act 𝒫f-set = {!!}

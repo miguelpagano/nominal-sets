@@ -162,15 +162,18 @@ SubSetoid S P = record
     }
   }
 
--- module _ {ℓ₁ ℓ₂ ℓ₃} (S : Setoid ℓ₁ ℓ₂) where
+_↔_ : ∀ {ℓP ℓa} {A : Set ℓa} → (P Q : Pred A ℓP) → Set (ℓP ⊔ ℓa)
+P ↔ Q = P ⊆ Q × Q ⊆ P
 
---   _↔_ : ∀ {ℓa} {A : Set ℓa} → (P Q : Pred A ℓ₃) → Set {!!}
---   P ↔ Q = P ⊆ Q × Q ⊆ P
+module _ {ℓ₁ ℓ₂ ℓ₃} (S : Setoid ℓ₁ ℓ₂) where
 
---   _↔ₛ_ : (P Q : SetoidPredicate {ℓ₃ = ℓ₃} S) → Set {!!}
---   P ↔ₛ Q = predicate P ↔ predicate Q
+  _↔ₛ_ : (P Q : SetoidPredicate {ℓ₃ = ℓ₃} S) → Set (ℓ₁ ⊔ ℓ₃)
+  P ↔ₛ Q = predicate P ↔ predicate Q
 
---   PredSetoid : Setoid {!!} {!!}
---   Carrier PredSetoid = SetoidPredicate {ℓ₃ = ℓ₃} S
---   _≈_ PredSetoid = {!!}
---   isEquivalence PredSetoid = {!!}
+  open IsEquivalence
+  PredSetoid : Setoid (lsuc ℓ₁ ⊔ lsuc ℓ₂ ⊔ lsuc ℓ₃) (ℓ₁ ⊔ ℓ₃)
+  Carrier PredSetoid = SetoidPredicate {ℓ₃ = ℓ₃} S
+  _≈_ PredSetoid = _↔ₛ_
+  refl (isEquivalence PredSetoid) = F.id , F.id
+  sym (isEquivalence PredSetoid) (p ,  q) = q , p
+  trans (isEquivalence PredSetoid) (p , q) (r , s)= (r ∘ p) , q ∘ s
