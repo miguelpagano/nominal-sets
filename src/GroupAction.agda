@@ -34,13 +34,16 @@ module G-Action (A : Setoid ℓ₁ ℓ₂) (G : Group cℓ ℓ) where
 -- (of the group) and of the set on which it acts; in agda
 -- this is given by Func.
   open Group
+  open import Algebra.Properties.Group G
 
   record IsAction (F : Func (setoid G ×ₛ A) A) : Set (ℓ₁ ⊔ ℓ₂ ⊔ cℓ ⊔ ℓ) where
 
     infix 8 _∙ₐ_
+    open module G = Group G
     private
        _≈A_ = _≈_ A
        _≈G_ = _≈_ G
+       ε′ = G.ε G.⁻¹
 
 -- We introduce a more conventional syntax for the action as
 -- an infix operator.
@@ -48,7 +51,6 @@ module G-Action (A : Setoid ℓ₁ ℓ₂) (G : Group cℓ ℓ) where
     _∙ₐ_ : Carrier G → Carrier A → Carrier A
     g ∙ₐ x = Func.f F (g , x)
 
-    open module G = Group G
     field
       idₐ : ∀ x → (G.ε ∙ₐ x) ≈A x
       ∘ₐ : ∀ g g' x → (g' ∙ₐ (g ∙ₐ x)) ≈A ((g' G.∙ g) ∙ₐ x)
@@ -58,6 +60,9 @@ module G-Action (A : Setoid ℓ₁ ℓ₂) (G : Group cℓ ℓ) where
 
     congʳ : ∀ g {x} {x'} → x ≈A x' → (g ∙ₐ x) ≈A (g ∙ₐ x')
     congʳ g x≈x' = Func.cong F (refl G , x≈x')
+
+    id⁻¹ : ∀ x → ((G.ε G.⁻¹) ∙ₐ x) ≈A x
+    id⁻¹ x = trans A (congˡ x ε⁻¹≈ε) (idₐ x)
 
 
 -- An Action is given by the function (preserving equalities) and
@@ -272,3 +277,46 @@ open Equivariant
          }
      }
   }
+
+module _ (AG : G-Set {ℓ₁ = ℓ₁} {ℓ₂ = ℓ₂} G) (BG : G-Set {ℓ₁ = ℓ₃} {ℓ₄} G) where
+
+  open import Setoid-Extra
+  open Func
+  open IsAction
+  open module ∙A = Action (act AG)
+  open module ∙B = Action (act BG)
+  open ≈-Reasoning (set BG)
+
+  module Grp = Group G
+  private
+    _′ = Grp._⁻¹
+    ε = Grp.ε
+    _∙_ = Grp._∙_
+  open import Algebra.Properties.Group G
+
+  GSet-⇒ : G-Set {ℓ₁ = ℓ₁ ⊔ ℓ₂ ⊔ ℓ₃ ⊔ ℓ₄} {ℓ₂ = ℓ₁ ⊔ ℓ₄} G
+  set GSet-⇒ = set AG ⇒ₛ set BG
+  f (f (action (act GSet-⇒)) (g , F)) a = g ∙B.∙ₐ f F (g ′ ∙A.∙ₐ a)
+  cong (f (action (act GSet-⇒)) (g , F)) a≈a' = ∙B.congʳ g (cong F (∙A.congʳ (g ′) a≈a'))
+  cong (action (act GSet-⇒)) {x = g , F} {g' , G} (g≈g' , F=G) a = begin
+    g ∙B.∙ₐ f F (g ′ ∙A.∙ₐ a)
+    ≈⟨ ∙B.congʳ g (F=G ((g ′ ∙A.∙ₐ a))) ⟩
+    g ∙B.∙ₐ f G (g ′ ∙A.∙ₐ a)
+    ≈⟨ ∙B.congʳ g (cong G (∙A.congˡ a (Grp.⁻¹-cong g≈g'))) ⟩
+    g ∙B.∙ₐ f G (g' ′ ∙A.∙ₐ a)
+    ≈⟨ ∙B.congˡ (f G (g' ′ ∙A.∙ₐ a)) g≈g' ⟩
+    g' ∙B.∙ₐ f G (g' ′ ∙A.∙ₐ a) ∎
+  idₐ (isAction (act GSet-⇒)) H a = begin
+    ε ∙B.∙ₐ f H (ε ′ ∙A.∙ₐ a)
+    ≈⟨ ∙B.congʳ ε (cong H (∙A.id⁻¹ a)) ⟩
+    ε ∙B.∙ₐ f H a
+    ≈⟨ ∙B.idₐ (f H a) ⟩
+    (f H a) ∎
+  ∘ₐ (isAction (act GSet-⇒)) g g' H a = begin
+    (g' ∙B.∙ₐ (g ∙B.∙ₐ f H (g ′ ∙A.∙ₐ (g' ′ ∙A.∙ₐ a))))
+    ≈⟨ ∙B.∘ₐ g g' (f H (g ′ ∙A.∙ₐ (g' ′ ∙A.∙ₐ a))) ⟩
+    (g' ∙ g) ∙B.∙ₐ (f H (g ′ ∙A.∙ₐ (g' ′ ∙A.∙ₐ a)))
+    ≈⟨ ∙B.congʳ (g' ∙ g) (cong H (∙A.∘ₐ (g' ′) (g ′) a)) ⟩
+    (g' ∙ g) ∙B.∙ₐ f H (((g ′) ∙ (g' ′)) ∙A.∙ₐ a)
+    ≈⟨ ∙B.congʳ (g' ∙ g) (cong H (∙A.congˡ a (Grp.sym (⁻¹-anti-homo-∙ g' g)))) ⟩
+    (g' ∙ g) ∙B.∙ₐ f H ((g' ∙ g) ′ ∙A.∙ₐ a) ∎

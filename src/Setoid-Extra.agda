@@ -55,18 +55,29 @@ module ExtEq {ℓ₁ ℓ₂ ℓ₃ ℓ₄} {A : Setoid ℓ₁ ℓ₂} {B : Setoi
     _≈A_ = Setoid._≈_ A
 
   open Setoid B
-  _≈→_ : Rel (A ⟶ B) _
-  f ≈→ g  = (a : ∥ A ∥) → (f ⟨$⟩ a) ≈B (g ⟨$⟩ a)
+  open Func
+  _≈→_ : Rel (Func A B) _
+  F ≈→ G  = (a : ∥ A ∥) → (f F a) ≈B (f G a)
 
-  ext-preserves-≈ : ∀ {a a' f g} → f ≈→ g → a ≈A a' → (f ⟨$⟩ a) ≈B (g ⟨$⟩ a')
-  ext-preserves-≈ {a' = a'} {f} f≈g a≈a' = trans (Π.cong f a≈a') (f≈g a')
+  ext-preserves-≈ : ∀ {a a' F G} → F ≈→ G → a ≈A a' → (f F a) ≈B (f G a')
+  ext-preserves-≈ {a' = a'} {F} f≈g a≈a' = trans (cong F a≈a') (f≈g a')
 
   Equiv≈→ : IsEquivalence (_≈→_)
   Equiv≈→ = record
-    { refl = λ {f} a → refl {f ⟨$⟩ a}
+    { refl = λ {F} a → refl {f F a}
     ; sym = λ p a → sym (p a)
     ; trans = λ p q a → trans (p a) (q a)
     }
+
+
+module _ {ℓ₁ ℓ₂ ℓ₃ ℓ₄} (A : Setoid ℓ₁ ℓ₂) (B : Setoid ℓ₃ ℓ₄) where
+  open Setoid
+  open ExtEq {A = A} {B}
+
+  _⇒ₛ_ : Setoid (ℓ₁ ⊔ ℓ₂ ⊔ ℓ₃ ⊔ ℓ₄) (ℓ₁ ⊔ ℓ₄)
+  Carrier (_⇒ₛ_) = Func A B
+  _≈_ (_⇒ₛ_) = _≈→_
+  isEquivalence (_⇒ₛ_) = Equiv≈→
 
 {- A predicate over a setoid should be even with respect to the equality -}
 open Setoid
