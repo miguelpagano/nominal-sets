@@ -121,14 +121,14 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
     -- for every a and b in the complement of P, the action of (SWAP a b) in x
     -- fixes it.
     _supports_ : Pred X (ℓ ⊔ ℓP ⊔ ℓx')
-    _supports_ x = ∀ (a b : A-carrier) → (a ∉ₛ P) → b ∉ₛ P → ((SWAP a b) ∙ₐ x) ≈X x
+    _supports_ x = ∀ {a b : A-carrier} → (a ∉ₛ P) → b ∉ₛ P → ((SWAP a b) ∙ₐ x) ≈X x
 
     -- Finally we can prove that is-supp implies supports.
     private
       open Act-Lemmas {X-set = X-set}
 
       is-supp⊆supports : ∀ x → is-supp x → _supports_ x
-      is-supp⊆supports x inv a b a∉P b∉P = inv (SWAP a b) easy
+      is-supp⊆supports x inv {a} {b} a∉P b∉P = inv (SWAP a b) easy
         where
         easy : predicate P ⊆ (_∉-dom proj₁ (SWAP a b))
         easy {c} c∈P = DecSetoid.reflexive A-setoid (transp-eq₃ c≉a c≉b)
@@ -160,7 +160,7 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
               predq : predicate P ⊆ (_∉ atoms q)
               predq {a} Pa a∈atq = pred Pa (∈-++⁺ʳ setoid (atoms p) a∈atq)
       supports⊆is-supp₃ {x} inv (Swap a b) pred =
-        inv a b (λ Pa → pred Pa (proj₁ (at-swap a b))) (λ Pb → pred Pb (proj₂ (at-swap a b)))
+        inv {a} {b} (λ Pa → pred Pa (proj₁ (at-swap a b))) (λ Pb → pred Pb (proj₂ (at-swap a b)))
 
       -- Thm. 2.2 should follow from the previous one, because:
       --  1. π ≈ toPERM (norm p) , p = proj₁ (proj₂ π)
@@ -222,15 +222,36 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
     -- Nominal sets
     -- ============
 
-    - Discrete G-set
+    -- Discrete G-set
     Δ-nominal : Nominal (Δ S)
-    sup (Δ-nominal {S = S}) x = ⊥ₛ , ⊥-finite , (λ _ _ _ _ → S-refl {x = x})
+    sup (Δ-nominal {S = S}) x = ⊥ₛ , ⊥-finite , (λ _ _ → S-refl {x = x})
       where open Setoid S renaming (refl to S-refl)
 
     open G-Set
     open G-Action.Action
     open Func
     open Inverse
+
+
+    private
+      variable
+        ℓ₁ ℓ₂  ℓQ : Level
+        B : G-Set {ℓ₁ = ℓ₁} {ℓ₂ = ℓ₂} 𝔸
+        C : G-Set {ℓ₁ = ℓ₃} {ℓ₂ = ℓ₄} 𝔸
+        -- C : G-Set {ℓ₁ = ℓ₅} {ℓ₂ = ℓ₆} G
+
+    -- Product of two nominal sets.
+    ×-nominal : Nominal {ℓP = ℓP} B →
+                Nominal {ℓP = ℓQ} C → Nominal (GSet-× B C)
+    sup (×-nominal nom-B nom-C) (x , y) =
+        (PB ∪ₛ PC)
+      , (∪-finite {P = PB} {Q = PC} finB finC)
+      , λ a∉∪ b∉∪ → supB (∉-∪ₛ⁻ˡ PB PC a∉∪) (∉-∪ₛ⁻ˡ PB PC b∉∪)
+                     , supC (∉-∪ₛ⁻ʳ PB PC a∉∪) (∉-∪ₛ⁻ʳ PB PC b∉∪)
+      where Pb = sup nom-B x ; Pc = sup nom-C y
+            PB = proj₁ Pb ; PC = proj₁ Pc
+            finB = proj₁ (proj₂ Pb) ; finC = proj₁ (proj₂ Pc)
+            supB = proj₂ (proj₂ Pb) ; supC = proj₂ (proj₂ Pc)
 
     -- The set of atoms is both a G-set and a nominal set.
     𝔸-set : G-Set 𝔸
@@ -240,5 +261,5 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
     isAction (act 𝔸-set) = record { idₐ = λ x → refl ; ∘ₐ = λ g g' x → refl }
 
     𝔸-set-nominal : Nominal 𝔸-set
-    sup (𝔸-set-nominal) x = [ x ]ₛ , ([ x ] , here) , λ a b a≠x b≠x → reflexive (transp-eq₃ (≉-sym a≠x) (≉-sym b≠x))
+    sup (𝔸-set-nominal) x = [ x ]ₛ , ([ x ] , here) , λ a≠x b≠x → reflexive (transp-eq₃ (≉-sym a≠x) (≉-sym b≠x))
       where open Inequality setoid

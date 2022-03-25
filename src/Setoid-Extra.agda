@@ -13,8 +13,8 @@ open import Level renaming (suc to lsuc ; zero to lzero)
 
 open import Data.Empty
 open import Data.Product
-open import Data.Product.Relation.Binary.Pointwise.NonDependent using (×-setoid)
-open import Data.Sum
+open import Data.Product.Relation.Binary.Pointwise.NonDependent using (_×ₛ_)
+open import Data.Sum hiding (map)
 open import Data.Unit
 open import Function as F hiding (_⟶_;_↔_)
 open import Function.Equality as FE renaming (_∘_ to _∘ₛ_) hiding (setoid)
@@ -25,7 +25,7 @@ open import Relation.Nullary
 open import Relation.Nullary.Negation
 open import Relation.Unary
 
-module Inequality {l₁ l₂} (A : Setoid l₁ l₂) where
+module Inequality {ℓ₁ ℓ₂} (A : Setoid ℓ₁ ℓ₂) where
   open Setoid A
   ≉-sym : ∀ {a b} → a ≉ b → b ≉ a
   ≉-sym a≠b b=a = contradiction (sym b=a) a≠b
@@ -37,7 +37,7 @@ module Inequality {l₁ l₂} (A : Setoid l₁ l₂) where
   ≉-resp-≈₂ b=c a≠b a=c = contradiction (trans a=c (sym b=c)) a≠b
 
 {- Carrier -}
-∥_∥ : ∀ {l₁ l₂} → (Setoid l₁ l₂) → Set l₁
+∥_∥ : ∀ {ℓ₁ ℓ₂} → (Setoid ℓ₁ ℓ₂) → Set ℓ₁
 ∥ S ∥ =  Carrier
   where open Setoid S
 
@@ -88,7 +88,7 @@ WellDef S P = ∀ {x y : Carrier S } → _≈_ S x y → P x → P y
 
 {- A binary relation over a setoid should be even with respect to the equality -}
 WellDefRel : ∀ {ℓ₁ ℓ₂ ℓ₃} → (S : Setoid ℓ₁ ℓ₂) → Rel (Carrier S) ℓ₃ → Set _
-WellDefRel S R = WellDef (×-setoid S S) (λ {(a , b) → R a b})
+WellDefRel S R = WellDef (S ×ₛ S) (λ {(a , b) → R a b})
 
 
 {- A pre-congruene is a well-defined equivalence relation -}
@@ -116,21 +116,26 @@ record SetoidPredicate {ℓ₁ ℓ₂ ℓ₃} (S : Setoid ℓ₁ ℓ₂) :
 
 open SetoidPredicate
 
-_∪ₛ_ : ∀ {ℓ₁ ℓ₂ ℓ₃ ℓ₄} {S : Setoid ℓ₁ ℓ₂} →
-               SetoidPredicate {ℓ₃ = ℓ₃} S → SetoidPredicate {ℓ₃ = ℓ₄} S  →
-               SetoidPredicate {ℓ₃ = ℓ₃ ⊔ ℓ₄} S
-_∪ₛ_ {S = S} P Q = record {
-                             predicate = predicate P ∪ predicate Q
-                           ; predWellDef = ∪-WellDef {S = S} (predWellDef P)  (predWellDef Q)
-                           }
+module _ {ℓ₁ ℓ₂ ℓ₃ ℓ₄} {S : Setoid ℓ₁ ℓ₂} (P : SetoidPredicate {ℓ₃ = ℓ₃} S) (Q : SetoidPredicate {ℓ₃ = ℓ₄} S)
+  where
 
-_∩ₛ_ : ∀ {ℓ₁ ℓ₂ ℓ₃ ℓ₄} {S : Setoid ℓ₁ ℓ₂} →
-               SetoidPredicate {ℓ₃ = ℓ₃} S → SetoidPredicate {ℓ₃ = ℓ₄} S  →
-               SetoidPredicate {ℓ₃ = ℓ₃ ⊔ ℓ₄} S
-_∩ₛ_ {S = S} P Q = record {
-                             predicate = predicate P ∩ predicate Q
-                           ; predWellDef = ∩-WellDef {S = S} (predWellDef P)  (predWellDef Q)
-                           }
+  _∪ₛ_ : SetoidPredicate {ℓ₃ = ℓ₃ ⊔ ℓ₄} S
+  _∪ₛ_  = record {
+                               predicate = predicate P ∪ predicate Q
+                             ; predWellDef = ∪-WellDef {S = S} (predWellDef P)  (predWellDef Q)
+                             }
+
+  _∩ₛ_ : SetoidPredicate {ℓ₃ = ℓ₃ ⊔ ℓ₄} S
+  _∩ₛ_  = record {
+                               predicate = predicate P ∩ predicate Q
+                             ; predWellDef = ∩-WellDef {S = S} (predWellDef P)  (predWellDef Q)
+                             }
+
+  ∉-∪ₛ⁻ˡ : ∀ {a} → a ∉ₛ _∪ₛ_ → a ∉ₛ P
+  ∉-∪ₛ⁻ˡ a∉∪ a∈P = a∉∪ (inj₁ a∈P)
+
+  ∉-∪ₛ⁻ʳ : ∀ {a} → a ∉ₛ _∪ₛ_ → a ∉ₛ Q
+  ∉-∪ₛ⁻ʳ a∉∪ a∈Q = a∉∪ (inj₂ a∈Q)
 
 ⊥ₛ : ∀ {ℓ₁ ℓ₂} {S : Setoid ℓ₁ ℓ₂} → SetoidPredicate S
 predicate ⊥ₛ = ∅
@@ -177,3 +182,12 @@ module _ {ℓ₁ ℓ₂ ℓ₃} (S : Setoid ℓ₁ ℓ₂) where
   refl (isEquivalence PredSetoid) = F.id , F.id
   sym (isEquivalence PredSetoid) (p ,  q) = q , p
   trans (isEquivalence PredSetoid) (p , q) (r , s)= (r ∘ p) , q ∘ s
+
+module _ {ℓ₁ ℓ₂ ℓ₃ ℓ₄ ℓ₅ ℓ₆} {S : Setoid ℓ₁ ℓ₂} {S' : Setoid ℓ₃ ℓ₄}
+  (P : SetoidPredicate {ℓ₃ = ℓ₅} S) (Q : SetoidPredicate {ℓ₃ = ℓ₆} S')
+  where
+
+  _×ₚₛ_ : SetoidPredicate {ℓ₃ = ℓ₅ ⊔ ℓ₆} (S ×ₛ S')
+  predicate _×ₚₛ_ (a , b) = a ∈ₛ P × b ∈ₛ Q
+  predWellDef _×ₚₛ_ eq (pa , qb) = predWellDef P (proj₁ eq) pa ,
+                                   predWellDef Q (proj₂ eq) qb
