@@ -458,6 +458,9 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   _∈-dom_ : Carrier → Perm → Set ℓ'
   a ∈-dom π = f π a ≉ a
 
+  ∈-dom? : (p : Perm) → (x : Carrier) → Dec (x ∈-dom p)
+  ∈-dom? p x = ¬? (f p x ≟ x)
+
   -- Strict equality
   _∉-dom!_ : Carrier → Perm → Set ℓ
   a ∉-dom! π = f π a ≡A a
@@ -473,14 +476,11 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   at-swap : ∀ a b → a ∈ atoms (Swap a b) × b ∈ atoms (Swap a b)
   at-swap a b = here refl , there (here refl)
 
-  ∈-dom? : (p : FinPerm) → (x : Carrier) → Dec (x ∈-dom ⟦ p ⟧)
-  ∈-dom? p x = ¬? (f ⟦ p ⟧ x ≟ x)
-
   ∈-atoms? : (p : FinPerm) → (x : Carrier) → Dec (x ∈ atoms p)
   ∈-atoms? p x = x ∈? (atoms p)
 
   atoms' : FinPerm → List Carrier
-  atoms' p = filter (∈-dom? p) (atoms p)
+  atoms' p = filter (∈-dom? ⟦ p ⟧) (atoms p)
 
   atomsₚ : PERM → List Carrier
   atomsₚ = atoms' ∘ proj₁ ∘ proj₂
@@ -509,12 +509,12 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   ... | yes a∈atq = decidable-stable (f ⟦ q ⟧ a ≟ a) (p a∉atq)
     where
     open List-Extra
-    p = ∉-filter⁻ setoid (∈-dom? q) (∈-dom-resp-≈ q) {xs = atoms q} a∈atq
+    p = ∉-filter⁻ setoid (∈-dom? ⟦ q ⟧) (∈-dom-resp-≈ q) {xs = atoms q} a∈atq
   ... | no a∉atq = ∉-atoms-∉ {q} a∉atq
 
   ∉-∉-atoms : ∀ q {a} → a ∉-dom ⟦ q ⟧ → a ∉ atoms' q
   ∉-∉-atoms p a∉dom a∈at = proj₂ q a∉dom
-    where q = ∈-filter⁻ setoid (∈-dom? p) (∈-dom-resp-≈ p) {xs = atoms p} a∈at
+    where q = ∈-filter⁻ setoid (∈-dom? ⟦ p ⟧) (∈-dom-resp-≈ p) {xs = atoms p} a∈at
 
 -- TODO: move this to Setoid-Extra
 
@@ -524,3 +524,79 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
 
   ∉-PERM : (P : PERM) → (_∉-dom (proj₁ P)) ↔ (_∉-dom ⟦ proj₁ (proj₂ P) ⟧)
   ∉-PERM (π , p , eq) = (λ {a} → trans (sym (eq a))) , λ {a} → trans (eq a)
+
+  -- Cycle representation
+  -----------------------
+  module _ where
+    open import Data.Nat hiding (_⊔_;_≟_)
+    open import Data.Unit.Polymorphic renaming (⊤ to ⊤ₚ;tt to ttₚ) hiding (_≟_)
+
+    -- TODO: use a better representation; I tried to use Fresh lists
+    -- but some proofs where difficult (or impossible).
+    Cycle : Set ℓ
+    Cycle = List Carrier
+
+    -- TODO: this can be used to ensure that cycles are disjoint.
+    -- Alternatively, one can use Disjoint from the stdlib composed
+    -- with toList :: Cycle → List Carrier.
+    Disj : Rel Cycle (ℓ ⊔ ℓ')
+    Disj [] ρ' = ⊤ₚ
+    Disj (a ∷ ρ) [] = ⊤ₚ
+    Disj (a ∷ ρ) (b ∷ ρ') = a ≉ b × a ∉ ρ' × b ∉ ρ × Disj ρ ρ'
+
+    -- We get rid of identities.
+    comp : Op₂ FinPerm
+    comp p Id = p
+    comp p (Comp q q') = Comp p (Comp q q')
+    comp p (Swap a b) = Comp p (Swap a b)
+
+
+    cycle-to-FP : Cycle → FinPerm
+    cycle-to-FP [] = Id
+    cycle-to-FP (a ∷ []) = Id
+    cycle-to-FP (a ∷ xs@(b ∷ _)) = comp (Swap a b) (cycle-to-FP xs)
+
+    to-FP : List Cycle → FinPerm
+    to-FP [] = Id
+    to-FP (ρ ∷ ρs) = comp (cycle-to-FP ρ) (to-FP ρs)
+
+    simple : Carrier → Perm → Cycle
+    simple a π with ∈-dom? π a
+    ... | yes a∈dom = (f π a) ∷ a ∷ []
+    ... | no _ = []
+
+    cycle-for-at : ℕ → (a : Carrier) → (π : Perm) → Cycle
+    cycle-for-at zero a π = simple a π
+    cycle-for-at (suc n) a π with cycle-for-at n a π
+    ... | [] = []
+    ... | ρ'@(aⁿ ∷ ρ) with f π aⁿ ≟ a
+    ... | yes _ = ρ'
+    ... | no an≠a = (f π aⁿ) ∷ ρ'
+
+    from-atoms : Perm → ℕ → List Carrier → List Cycle
+    from-atoms π _ [] = []
+    from-atoms π n (x ∷ ls) with from-atoms π n ls
+    ... | [] = cycle-for-at n x π ∷ []
+    ... | ρss@(ρ ∷ ρs) with any? (x ∈?_) ρss
+    ... | yes _ = ρss
+    ... | no _ = cycle-for-at n x π ∷ ρss
+
+    fromFP : FinPerm → List Cycle
+    fromFP p = from-atoms ⟦ p ⟧ n sup
+      where sup = atoms' p
+            n = length sup
+
+    norm : FinPerm → FinPerm
+    norm = to-FP ∘ fromFP
+
+module Ex where
+  open import Data.Nat
+  open import Data.Nat.Properties
+  open Perm ≡-decSetoid
+  open import Data.List
+  cycle₀ = 1 ∷ 3 ∷ 5 ∷ 7 ∷ []
+  cycle₁ = 2 ∷ 4 ∷ 6 ∷ []
+  cycles = cycle₀ ∷ cycle₁ ∷ []
+  test₁ : norm (Comp (Swap 8 8) (to-FP cycles)) ≡ norm (Comp (Swap 9 9) (to-FP cycles))
+  test₁ = _≡_.refl
+

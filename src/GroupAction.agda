@@ -278,6 +278,7 @@ open Equivariant
      }
   }
 
+-- Space of functions from A to B is a G-Set, if both are.
 module _ (AG : G-Set {ℓ₁ = ℓ₁} {ℓ₂ = ℓ₂} G) (BG : G-Set {ℓ₁ = ℓ₃} {ℓ₄} G) where
 
   open import Setoid-Extra
