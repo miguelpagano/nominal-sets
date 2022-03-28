@@ -573,16 +573,14 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     ... | yes _ = ρ'
     ... | no an≠a = (f π aⁿ) ∷ ρ'
 
-    from-atoms : Perm → ℕ → List Carrier → List Cycle
-    from-atoms π _ [] = []
-    from-atoms π n (x ∷ ls) with from-atoms π n ls
-    ... | [] = cycle-for-at n x π ∷ []
-    ... | ρss@(ρ ∷ ρs) with any? (x ∈?_) ρss
-    ... | yes _ = ρss
-    ... | no _ = cycle-for-at n x π ∷ ρss
+    from-atoms : Perm → ℕ → List Carrier → List Cycle → List Cycle
+    from-atoms π _ [] ρs = ρs
+    from-atoms π n (x ∷ ls) ρs with any? (x ∈?_) ρs
+    ... | yes _ = from-atoms π n ls ρs
+    ... | no _ = from-atoms π n ls (reverse (cycle-for-at n x π) ∷ ρs)
 
     fromFP : FinPerm → List Cycle
-    fromFP p = from-atoms ⟦ p ⟧ n sup
+    fromFP p = from-atoms ⟦ p ⟧ n sup []
       where sup = atoms' p
             n = length sup
 
@@ -594,9 +592,19 @@ module Ex where
   open import Data.Nat.Properties
   open Perm ≡-decSetoid
   open import Data.List
+
+
   cycle₀ = 1 ∷ 3 ∷ 5 ∷ 7 ∷ []
   cycle₁ = 2 ∷ 4 ∷ 6 ∷ []
   cycles = cycle₀ ∷ cycle₁ ∷ []
-  test₁ : norm (Comp (Swap 8 8) (to-FP cycles)) ≡ norm (Comp (Swap 9 9) (to-FP cycles))
+
+  test₁ : norm (Comp (Swap 8 8) (to-FP cycles)) ≡
+          norm (Comp (Swap 9 9) (to-FP cycles))
   test₁ = _≡_.refl
 
+  open Func
+  open Inverse
+  test₂ : norm (Comp (Swap 8 8) (to-FP cycles)) ≡
+          Comp (Comp (Swap 2 4) (Swap 4 6))
+          (Comp (Swap 1 3) (Comp (Swap 3 5) (Swap 5 7)))
+  test₂ = _≡_.refl
