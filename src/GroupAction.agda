@@ -10,6 +10,8 @@ module GroupAction where
 open import Algebra hiding (Inverse)
 open import Data.Product
 open import Data.Product.Relation.Binary.Pointwise.NonDependent
+open import Data.Sum
+open import Data.Sum.Relation.Binary.Pointwise
 open import Function
 open import Function.Construct.Composition renaming (inverse to _∘ₚ_;function to _∘ₛ_)
 open import Function.Construct.Identity renaming (inverse to idₚ;function to idₛ)
@@ -227,6 +229,7 @@ GSet-× A B = record
         open Setoid (set B) renaming (Carrier to B'; _≈_ to  _≈B_)
         B-setoid = set B
 
+
 -- Product morphism is equivariant.
 ⟨_,_⟩ : Equivariant C A → Equivariant C B → Equivariant C (GSet-× A B)
 ⟨_,_⟩  {C = C} {A = A} {B = B} H K = record
@@ -250,11 +253,57 @@ GSet-× A B = record
         module A= = ≈-Reasoning (set A)
         module B= = ≈-Reasoning (set B)
         open Func
-        open Setoid (set A) renaming (Carrier to A'; _≈_ to  _≈A_)
-        open Setoid (set B) renaming (Carrier to B'; _≈_ to  _≈B_)
+        open Setoid (set A) renaming (Carrier to A'; _≈_ to _≈A_)
+        open Setoid (set B) renaming (Carrier to B'; _≈_ to _≈B_)
         open Action (act A) renaming (_∙ₐ_ to _∙A_)
         open Action (act B) renaming (_∙ₐ_ to _∙B_)
         open Action (act C) renaming (_∙ₐ_ to _∙C_)
+
+
+-- Binary CoProduct
+GSet-+ : G-Set {ℓ₁ = ℓ₁} {ℓ₂ = ℓ₂} G → G-Set {ℓ₁ = ℓ₃} {ℓ₄} G → G-Set {ℓ₁ = ℓ₁ ⊔ ℓ₃} {ℓ₂ = ℓ₁ ⊔ ℓ₂ ⊔ ℓ₃ ⊔ ℓ₄} G
+GSet-+ A B = record
+  { set = ?
+  ; act = record
+     { action = record
+       { f = ?
+       ; cong = {!!}
+       }
+     ; isAction = record
+       { idₐ = ?
+       ; ∘ₐ = ?
+       }
+     }
+  }
+  where open module ∙A = Action (act A)
+        open module ∙B = Action (act B)
+
+-- CoProduct morphism is equivariant.
+[[_,_]] : Equivariant A C → Equivariant B C → Equivariant (GSet-+ A B) C
+[[_,_]]  {A = A} {C = C} {B = B} H K = {!!}
+
+-- Injections are equivariants
+inject₁ : Equivariant A (GSet-+ A B)
+inject₁ {A = A} {B = B} = record
+  {  F =  record
+       {  f = {!!}
+        ;  cong = {!!}
+       }
+   ;  isEquivariant = {!!}
+  }
+  where open Equivariant
+        open Func
+
+inject₂ : Equivariant B (GSet-+ A B)
+inject₂ {B = B} {A = A} = record
+  {  F =  record
+       {  f = {!!}
+        ;  cong = {!!}
+       }
+   ;  isEquivariant = {!!}
+  }
+  where open Equivariant
+        open Func
 
 open Equivariant
 
