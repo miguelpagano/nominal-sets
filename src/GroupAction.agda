@@ -188,7 +188,7 @@ GSet-× A B = record
   { set = set A ×ₛ set B
   ; act = record
     { action = record
-      { f =  λ (g , (a , b)) → (g ∙A.∙ₐ a , (g ∙B.∙ₐ b))
+      { f = λ (g , (a , b)) → (g ∙A.∙ₐ a , (g ∙B.∙ₐ b))
       ; cong = λ (g≈g' , a≈a' , b≈b') → Func.cong ∙A.action (g≈g' , a≈a') ,  Func.cong ∙B.action (g≈g' , b≈b')
       }
     ; isAction = record
@@ -197,7 +197,7 @@ GSet-× A B = record
       }
     }
   }
-  where open module ∙A = Action (act A)
+  where open module ∙A = Action (act A)     
         open module ∙B = Action (act B)
 
 -- Projections are equivariants
@@ -269,11 +269,14 @@ GSet-+ A B = record
   ; act = record
      { action = record
        { f = λ (g , s) →  [ (λ x → inj₁ (g ∙A.∙ₐ x)) , (λ x → inj₂ (g ∙B.∙ₐ x)) ]′ s  
-       ; cong = λ x → {! !}
+       ; cong = λ { (g≈g' , inj₁ a≈a') → inj₁ (Func.cong ∙A.action (g≈g' , a≈a'))
+                  ; (g≈g' , inj₂ b≈b') → inj₂ (Func.cong ∙B.action (g≈g' , b≈b')) }
        }
      ; isAction = record
-       { idₐ = λ x → {!!}
-       ; ∘ₐ = λ g g' x → {!!}
+       { idₐ = λ { (inj₁ x) → inj₁ (∙A.idₐ x)
+                 ; (inj₂ x) → inj₂ (∙B.idₐ x) }
+       ; ∘ₐ  = λ { g g' (inj₁ x) → inj₁ (∙A.∘ₐ g g' x)
+                 ; g g' (inj₂ x) → inj₂ (∙B.∘ₐ g g' x)  }
        }
      }
   }
@@ -285,7 +288,7 @@ GSet-+ A B = record
 [[_,_]] {A = A} {C = C} {B = B} H K = record
   { F = record
         { f = λ x → [ f (F H) , f (F K) ]′ x
-        ; cong = λ x → {!!}
+        ; cong = {!!}
         }
   ; isEquivariant = {!!}
   }
