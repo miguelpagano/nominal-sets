@@ -203,11 +203,11 @@ GSet-× A B = record
 -- Projections are equivariants
 π₁ : Equivariant (GSet-× A B) A
 π₁ {A = A} {B = B} = record
-  {  F =  record
-       {  f = proj₁
-        ;  cong = proj₁
-       }
-   ;  isEquivariant = λ x g → refl A-setoid
+  { F = record
+        { f = proj₁
+        ; cong = proj₁
+        }
+  ; isEquivariant = λ x g → refl A-setoid
   }
   where open Equivariant
         open Func
@@ -217,11 +217,11 @@ GSet-× A B = record
 
 π₂ : Equivariant (GSet-× A B) B
 π₂ {A = A} {B = B} = record
-  {  F =  record
-       {  f = proj₂
-        ;  cong = proj₂
-       }
-   ;  isEquivariant = λ x g → refl B-setoid
+  { F = record
+        { f = proj₂
+        ; cong = proj₂
+        }
+  ; isEquivariant = λ x g → refl B-setoid
   }
   where open Equivariant
         open Func
@@ -233,11 +233,11 @@ GSet-× A B = record
 -- Product morphism is equivariant.
 ⟨_,_⟩ : Equivariant C A → Equivariant C B → Equivariant C (GSet-× A B)
 ⟨_,_⟩  {C = C} {A = A} {B = B} H K = record
-  {  F =  record
-       {  f =  λ c →  (f (F H)) c ,  (f (F K)) c
-        ;  cong = λ c≈c' → Func.cong  (F H) c≈c' , Func.cong (F K)  c≈c'
-       }
-   ;  isEquivariant = λ x g →
+  { F = record
+        { f =  λ c →  (f (F H)) c ,  (f (F K)) c
+        ; cong = λ c≈c' → Func.cong  (F H) c≈c' , Func.cong (F K)  c≈c'
+        }
+  ; isEquivariant = λ x g →
         ( A=.begin
         f (F H) (g ∙C x)
         A=.≈⟨ isEquivariant H x g ⟩
@@ -259,19 +259,21 @@ GSet-× A B = record
         open Action (act B) renaming (_∙ₐ_ to _∙B_)
         open Action (act C) renaming (_∙ₐ_ to _∙C_)
 
+-- Equalities
+-- eq₁ : (H : Equivariant C A) → (K : Equivariant C B) → ⟨ H , K ⟩ ∘G π₁ = H
 
 -- Binary CoProduct
 GSet-+ : G-Set {ℓ₁ = ℓ₁} {ℓ₂ = ℓ₂} G → G-Set {ℓ₁ = ℓ₃} {ℓ₄} G → G-Set {ℓ₁ = ℓ₁ ⊔ ℓ₃} {ℓ₂ = ℓ₁ ⊔ ℓ₂ ⊔ ℓ₃ ⊔ ℓ₄} G
 GSet-+ A B = record
-  { set = ?
+  { set = set A ⊎ₛ set B
   ; act = record
      { action = record
-       { f = ?
-       ; cong = {!!}
+       { f = λ (g , s) →  [ (λ x → inj₁ (g ∙A.∙ₐ x)) , (λ x → inj₂ (g ∙B.∙ₐ x)) ]′ s  
+       ; cong = λ x → {! !}
        }
      ; isAction = record
-       { idₐ = ?
-       ; ∘ₐ = ?
+       { idₐ = λ x → {!!}
+       ; ∘ₐ = λ g g' x → {!!}
        }
      }
   }
@@ -280,35 +282,42 @@ GSet-+ A B = record
 
 -- CoProduct morphism is equivariant.
 [[_,_]] : Equivariant A C → Equivariant B C → Equivariant (GSet-+ A B) C
-[[_,_]]  {A = A} {C = C} {B = B} H K = {!!}
+[[_,_]] {A = A} {C = C} {B = B} H K = record
+  { F = record
+        { f = λ x → [ f (F H) , f (F K) ]′ x
+        ; cong = λ x → {!!}
+        }
+  ; isEquivariant = {!!}
+  }
+  where open Equivariant
+        module A= = ≈-Reasoning (set A)
+        module B= = ≈-Reasoning (set B)
+        open Func
 
 -- Injections are equivariants
 inject₁ : Equivariant A (GSet-+ A B)
 inject₁ {A = A} {B = B} = record
-  {  F =  record
-       {  f = {!!}
-        ;  cong = {!!}
-       }
-   ;  isEquivariant = {!!}
+  { F = record
+        { f = inj₁
+        ; cong = inj₁
+        }
+  ; isEquivariant = {!!}
   }
   where open Equivariant
         open Func
 
 inject₂ : Equivariant B (GSet-+ A B)
 inject₂ {B = B} {A = A} = record
-  {  F =  record
-       {  f = {!!}
-        ;  cong = {!!}
-       }
-   ;  isEquivariant = {!!}
+  { F = record
+        { f = inj₂
+        ; cong = inj₂
+        }
+  ; isEquivariant = {!!}
   }
   where open Equivariant
         open Func
 
 open Equivariant
-
--- Equalities
--- eq₁ : (H : Equivariant C A) → (K : Equivariant C B) → ⟨ H , K ⟩ ∘G π₁ = H
 
 -- Any setoid can be turned in a G-Set by letting $F(g,x) = x$.
 -- This G-Set is called the discrete G-Set.
