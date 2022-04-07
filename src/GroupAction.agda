@@ -288,7 +288,8 @@ GSet-+ A B = record
 [[_,_]] {A = A} {C = C} {B = B} H K = record
   { F = record
         { f = λ x → [ f (F H) , f (F K) ]′ x
-        ; cong = {!!}
+        ; cong = λ { (inj₁ c≈c') → Func.cong (F H) c≈c'
+                   ; (inj₂ c≈c') → Func.cong (F K) c≈c' }    
         }
   ; isEquivariant = {!!}
   }
@@ -304,10 +305,13 @@ inject₁ {A = A} {B = B} = record
         { f = inj₁
         ; cong = inj₁
         }
-  ; isEquivariant = {!!}
+  ; isEquivariant = λ x g → inj₁ (refl A-setoid)
   }
   where open Equivariant
         open Func
+        open Setoid (set A) renaming (Carrier to A'; _≈_ to  _≈A_)
+        open Setoid (set B) renaming (Carrier to B'; _≈_ to  _≈B_)
+        A-setoid = set A        
 
 inject₂ : Equivariant B (GSet-+ A B)
 inject₂ {B = B} {A = A} = record
@@ -315,10 +319,13 @@ inject₂ {B = B} {A = A} = record
         { f = inj₂
         ; cong = inj₂
         }
-  ; isEquivariant = {!!}
+  ; isEquivariant = λ x g → inj₂ (refl B-setoid)    
   }
   where open Equivariant
         open Func
+        open Setoid (set A) renaming (Carrier to A'; _≈_ to  _≈A_)
+        open Setoid (set B) renaming (Carrier to B'; _≈_ to  _≈B_)
+        B-setoid = set B         
 
 open Equivariant
 
