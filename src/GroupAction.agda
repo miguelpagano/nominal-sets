@@ -238,11 +238,11 @@ GSet-× A B = record
         ; cong = λ c≈c' → Func.cong  (F H) c≈c' , Func.cong (F K)  c≈c'
         }
   ; isEquivariant = λ x g →
-        ( A=.begin
-        f (F H) (g ∙C x)
-        A=.≈⟨ isEquivariant H x g ⟩
-        g ∙A f (F H) x
-        A=.∎ ) ,
+      (A=.begin
+         f (F H) (g ∙C x)
+         A=.≈⟨ isEquivariant H x g ⟩
+         g ∙A f (F H) x
+         A=.∎ ) ,
       (B=.begin
          f (F K) (g ∙C x)
          B=.≈⟨ isEquivariant K x g ⟩
@@ -291,12 +291,18 @@ GSet-+ A B = record
         ; cong = λ { (inj₁ c≈c') → Func.cong (F H) c≈c'
                    ; (inj₂ c≈c') → Func.cong (F K) c≈c' }    
         }
-  ; isEquivariant = {!!}
+  ; isEquivariant = λ { (inj₁ x) g → isEquivariant H x g
+                      ; (inj₂ x) g → isEquivariant K x g } 
   }
   where open Equivariant
         module A= = ≈-Reasoning (set A)
         module B= = ≈-Reasoning (set B)
         open Func
+        open Setoid (set A) renaming (Carrier to A'; _≈_ to _≈A_)
+        open Setoid (set B) renaming (Carrier to B'; _≈_ to _≈B_)
+        open Action (act A) renaming (_∙ₐ_ to _∙A_)
+        open Action (act B) renaming (_∙ₐ_ to _∙B_)
+        open Action (act C) renaming (_∙ₐ_ to _∙C_)        
 
 -- Injections are equivariants
 inject₁ : Equivariant A (GSet-+ A B)
