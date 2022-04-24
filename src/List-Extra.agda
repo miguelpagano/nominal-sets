@@ -28,10 +28,16 @@ module Extra {c ℓ : Level} (A : Setoid c ℓ) where
   open Any A -- renaming (_∈_ to _∈'_;_∉_ to _∉_)
   open Setoid A
 
+
   ∉-++⁻ : {v : Carrier} → ∀ xs {ys} → v ∉ xs ++ ys → (v ∉ xs) × (v ∉ ys)
   ∉-++⁻ xs v∉xs++ys =
         (λ v∈xs → ⊥-elim (v∉xs++ys (++⁺ˡ v∈xs))) ,
         λ v∈ys → ⊥-elim (v∉xs++ys (++⁺ʳ xs v∈ys))
+
+  ∉-++⁺ : {v : Carrier} → ∀ xs {ys} → (v ∉ xs) → (v ∉ ys) → v ∉ (xs ++ ys)
+  ∉-++⁺ xs v∉xs v∉ys v∈++ with ∈-++⁻ A xs v∈++
+  ... | inj₁ x = v∉xs x
+  ... | inj₂ y = v∉ys y
 
   ∉-++⁻ˡ : {v : Carrier} → ∀ xs {ys} → v ∉ xs ++ ys → (v ∉ xs)
   ∉-++⁻ˡ xs v∉xs++ys = proj₁ (∉-++⁻ xs v∉xs++ys)
