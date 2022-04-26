@@ -2,6 +2,7 @@
 -- ============
 
 -- Permutations on a setoid form the Symmetry Group.
+{-# OPTIONS --allow-unsolved-metas #-}
 module Permutation where
 
 open import Level renaming (suc to lsuc)
@@ -25,7 +26,7 @@ open import Relation.Binary
 import Relation.Binary.Reasoning.Setoid as ≈-Reasoning
 open import Relation.Binary.PropositionalEquality
   using (_≡_;≢-sym;Reveal_·_is_;[_];inspect)
-  renaming(sym to ≡-sym;subst to ≡-subst;cong to ≡-cong)
+  renaming(sym to ≡-sym;subst to ≡-subst;cong to ≡-cong;trans to ≡-trans)
 open import Relation.Nullary
 open import Relation.Nullary.Negation
 open import Relation.Unary hiding (_∈_;_∉_)
@@ -112,7 +113,7 @@ module Symmetry-Group (A-setoid : Setoid ℓ ℓ') where
 module Perm (A-setoid : DecSetoid ℓ ℓ') where
   open DecSetoid A-setoid
   open module A-Sym = Symmetry-Group setoid hiding (_≈_) public
-  open import Data.Bool hiding (_≟_)
+  open import Data.Bool hiding (_≟_;_≤_)
   open import Data.Empty
 
   open Inequality setoid
@@ -542,6 +543,11 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   comp-id₂ : ∀ a p q → f ⟦ q ⟧ a ∉-dom ⟦ p ⟧ → f ⟦ Comp p q ⟧ a ≈ f ⟦ q ⟧ a
   comp-id₂ a p q ∉dom = ∉dom
 
+  is-ok : ∀ a b → ¬ (a ≉ b) → a ≈ b
+  is-ok a b ¬a≠b with a ≟ b
+  ... | yes eq = eq
+  ... | no ¬eq = contradiction ¬eq ¬a≠b
+
 -- TODO: move this to Setoid-Extra
 
   ∈-PERM : (P : PERM) → (_∈-dom (proj₁ P)) ↔ (_∈-dom ⟦ proj₁ (proj₂ P) ⟧)
@@ -605,46 +611,13 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     comp-corr p (Comp q q₁) = λ x → refl
     comp-corr p (Swap a b) = λ x → refl
 
-    comp-corr' : ∀ p q a → f⁻¹ ⟦ comp p q ⟧ a ≈ f⁻¹ ⟦ Comp p q ⟧ a
-    comp-corr' p Id a = refl
-    comp-corr' p (Comp q q₁) a = refl
-    comp-corr' p (Swap a₁ b) a = refl
-
-    -- We assume that each cycle doesn't contain repeated elements.
-    cycle-to-FP : Cycle → FinPerm
-    cycle-to-FP [] = Id
-    cycle-to-FP (a ∷ []) = Id
-    cycle-to-FP (a ∷ as@(b ∷ _)) = comp (Swap a b) (cycle-to-FP as)
-
-    -- We assume that each cycle doesn't contain repeated elements.
     cycle-to-FP' : Carrier → Cycle → FinPerm
     cycle-to-FP' _ [] = Id
     cycle-to-FP' a (b ∷ as) = comp (Swap a b) (cycle-to-FP' b as)
 
-    cycle-to-FP'' : Cycle → FinPerm
-    cycle-to-FP'' [] = Id
-    cycle-to-FP'' (x ∷ as) = cycle-to-FP' x as
-
-    eqcy : ∀ x ρ → cycle-to-FP (x ∷ ρ) ≡ cycle-to-FP' x ρ
-    eqcy x [] = _≡_.refl
-    eqcy x (x₁ ∷ ρ) = ih (eqcy x₁ ρ)
-       where
-       ih : ∀ {a a'} → a ≡ a' → comp (Swap x x₁) a ≡  comp (Swap x x₁) a'
-       ih eq rewrite eq = _≡_.refl
-
-    eq'cy : ∀ ρ → cycle-to-FP ρ ≡ cycle-to-FP'' ρ
-    eq'cy [] = _≡_.refl
-    eq'cy (x ∷ ρ) = eqcy x ρ
-
-    -- cycle-atoms
-    cycle-atoms : ∀ a as → a ∉ as → a ∉-dom ⟦ cycle-to-FP as ⟧
-    cycle-atoms a [] a∉as = refl
-    cycle-atoms a (x ∷ []) a∉as = refl
-    cycle-atoms a (x ∷ x₁ ∷ as) a∉as = trans (comp-corr ((Swap x x₁)) (cycle-to-FP (x₁ ∷ as)) a)
-      (trans ((comp-id a (Swap x x₁) (cycle-to-FP (x₁ ∷ as)) (cycle-atoms a (x₁ ∷ as) a∉tl)))
-        (reflexive (transp-eq₃ (∉-∷⁼ (here refl) a∉as) (∉-∷⁼ (there (here refl)) a∉as))))
-      where a∉tl : a ∉ (x₁ ∷ as)
-            a∉tl = ∉-∷⁼ᵗ a∉as
+    cycle-to-FP : Cycle → FinPerm
+    cycle-to-FP [] = Id
+    cycle-to-FP (a ∷ as) = cycle-to-FP' a as
 
     cycle-atoms' : ∀ a as c → c ≉ a → c ∉ as → c ∉-dom ⟦ cycle-to-FP' a as ⟧
     cycle-atoms' a [] c a≉c c∉xs = refl
@@ -674,6 +647,21 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     ... | ρ , aⁿ with a ≟ f p aⁿ
     ... | yes _ = ρ , aⁿ
     ... | no _ = ρ ∷ʳ f p aⁿ , f p aⁿ
+
+    length-cycle : ∀ p n a →
+      let (ρ , c) = cycle p n a in
+      f p c ≉ a → length ρ ≡ suc n
+    length-cycle p ℕ.zero a pc≠a = _≡_.refl
+    length-cycle p (suc n) a pc≠a with cycle p n a | inspect (cycle p n) a
+    ... | ρ , aⁿ | [ eq ] with a ≟ f p aⁿ
+    ... | yes a=pa = contradiction a=pa (≉-sym pc≠a)
+    ... | no pan≠a =
+      ≡-trans (length-++ ρ) (≡-trans (+-comm (length ρ) 1) (≡-cong suc ih))
+      where
+      open import Data.Nat.Properties
+      ih : length ρ ≡ suc n
+      ih rewrite ≡-sym (≡-cong proj₂ eq) | ≡-sym (≡-cong proj₁ eq) = length-cycle p n a (≉-sym pan≠a)
+
 
     ∈-cycle⁻-last : (p : Perm) → (n : ℕ) → (a : Carrier) → a ∈-dom p →
       let (ρ , c) = cycle p n a in
@@ -767,9 +755,63 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     Fresh : Pred (List Carrier) (ℓ ⊔ ℓ')
     Fresh = AllPairs _≉_
 
+    card : List Carrier → ℕ
+    card [] = 0
+    card (x ∷ xs) with x ∈? xs
+    ... | yes _ = card xs
+    ... | no _ = 1 + card xs
+
+
     open import Data.List.Relation.Unary.All
     open import Data.List.Relation.Unary.Any.Properties using (¬Any[])
     open import Data.List.Relation.Unary.All.Properties using (All¬⇒¬Any;¬Any⇒All¬)
+
+    length-fresh=card : ∀ xs → Fresh xs → length xs ≡ card xs
+    length-fresh=card [] fr = _≡_.refl
+    length-fresh=card (x ∷ xs) (x∉xs ∷ fr) with x ∈? xs
+    ... | yes x∈xs = contradiction x∈xs (All¬⇒¬Any x∉xs)
+    ... | no _ = ≡-cong (1 +_) (length-fresh=card xs fr)
+
+    _∖[_] : List Carrier → Carrier → List Carrier
+    xs ∖[ x ] = filter (¬? ∘ (x ≟_)) xs
+
+    length-minus-sing : ∀ xs x → Fresh xs → x ∈ xs →
+      length xs ≡ 1 + length (xs ∖[ x ])
+    length-minus-sing [] x xs# ()
+    length-minus-sing (x ∷ xs) y (x# ∷ xs#) (here y=x) with x ∈? xs
+    ... | yes x∈xs = contradiction x∈xs (All¬⇒¬Any x#)
+    ... | no x∉xs = {!!}
+    length-minus-sing (x ∷ xs) y (x# ∷ xs#) (there y∈xs) with x ∈? xs
+    ... | yes x∈xs = contradiction x∈xs (All¬⇒¬Any x#)
+    ... | no x∉xs = {!!}
+
+    fresh-minus-sing : ∀ xs x → Fresh xs → Fresh (xs ∖[ x ])
+    fresh-minus-sing = ?
+
+    card-minus-sing : ∀ xs x → Fresh xs → x ∈ xs →
+      card xs ≡ 1 + card (xs ∖[ x ])
+    card-minus-sing xs x xs# x∈xs =
+      ≡-trans
+        (≡-sym (length-fresh=card xs xs#))
+     (≡-trans
+       (length-minus-sing xs x xs# x∈xs)
+       (≡-cong (1 +_) (length-fresh=card (xs ∖[ x ]) (fresh-minus-sing xs x xs#))))
+
+
+    card-mono : ∀ xs ys → Fresh xs → Fresh ys → (_∈ xs) ⊆ (_∈ ys) → card xs ≤ card ys
+    card-mono [] ys _ _ sub = z≤n
+    card-mono (x ∷ xs) ys (x# ∷ xs#) ys# sub with x ∈? xs
+    ... | yes _ = card-mono xs ys xs#  ys# (λ z∈xs → sub (there z∈xs))
+    ... | no x∉xs = ≤-trans (+-monoʳ-≤ 1 ih) (≤-reflexive (≡-sym (card-minus-sing ys x ys# (sub (here refl)))))
+      where
+      open import Data.Nat.Properties
+      xs⊆ys-[x] : (_∈ xs) ⊆ (_∈ (ys ∖[ x ]))
+      xs⊆ys-[x] {z} z∈xs = {!!}
+      ih : card xs ≤ card (ys ∖[ x ])
+      ih = card-mono xs (ys ∖[ x ]) xs# (fresh-minus-sing ys x ys#) xs⊆ys-[x]
+
+    _is-supp-of_ : List Carrier → Perm → Set (ℓ ⊔ ℓ')
+    xs is-supp-of π = Fresh xs × ((_∈ xs) ⊆ _∈-dom π) × ((_∈ xs) ⊇ _∈-dom π)
 
     data _,_~_,_ (p : Perm)  : (a b : Carrier) → Cycle → Set (ℓ ⊔ ℓ') where
       sing~ : ∀ a → f p a ≉ a → p , a ~ f p a , (f p a ∷ [])
@@ -820,6 +862,45 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     ~⇒fresh p .(f p a ∷ []) a .(f p a) (sing~ .a x) = [] ∷ []
     ~⇒fresh p .(f p a ∷ ρ) a c (∷~ .a .c ρ x x₁ rel) =
       ¬Any⇒All¬ ρ (~⇒# p ρ (f p a) c rel) ∷ (~⇒fresh p ρ (f p a) c rel)
+
+    cycle-fresh : ∀ p n a → a ∈-dom p →
+      let ρ , c = cycle p n a
+      in Fresh ρ
+    cycle-fresh p n a a∈p = ~⇒fresh p (proj₁ (cycle p n a)) a (proj₂ (cycle p n a))
+      (in~ p a n a∈p)
+
+    module _ where
+      cycle-closed : ∀ (π : Perm)
+        (as : List Carrier)
+        (a : Carrier)
+        (sup-π : as is-supp-of π)
+        (a∈sup : a ∈-dom π) →
+        let ρ , aⁿ = cycle π (length as) a in f π aⁿ ≈ a
+      cycle-closed π as a sup-π a∈dom with cycle π (length as) a | inspect (cycle π (length as)) a
+      ... | ρ , aⁿ | [ eq ] with a ≟ f π aⁿ
+      ... | yes eq' = sym eq'
+      ... | no a≠πaⁿ = ⊥-elim (1+n≰n 1+n≤n)
+        where
+        open import Data.Nat.Properties
+        fresh-as = proj₁ sup-π
+        dom⊆sup = proj₂ (proj₂ sup-π)
+        n = length as
+        eq₁ = ≡-sym (≡-cong proj₁ eq) ; eq₂ = ≡-sym (≡-cong proj₂ eq)
+        fresh-ρ : Fresh ρ
+        fresh-ρ rewrite eq₁ = cycle-fresh π n a a∈dom
+        |ρ|=1+n : length ρ ≡ suc (length as)
+        |ρ|=1+n rewrite eq₁ | eq₂ = length-cycle π (length as) a (≉-sym a≠πaⁿ)
+        |ρ|≤n : card ρ ≤ card as
+        |ρ|≤n = card-mono ρ as fresh-ρ fresh-as ρ⊆as
+          where
+          ρ⊆as : (_∈ ρ) ⊆ (_∈ as)
+          ρ⊆as {z} z∈ρ rewrite eq₁ = dom⊆sup (proj₁ (∈-cycle⇒∈-dom π n a a∈dom) z z∈ρ)
+        1+n≤n : suc n ≤ n
+        1+n≤n = ≤-trans
+          (≤-reflexive (≡-sym |ρ|=1+n))
+          (≤-trans (≤-reflexive (length-fresh=card ρ fresh-ρ))
+                   (≤-trans |ρ|≤n (≤-reflexive (≡-sym (length-fresh=card as fresh-as)))))
+
 
     ~⇒last : ∀ p ρ a c → p , a ~ c , ρ → c ∈ ρ
     ~⇒last p .(f p a ∷ []) a .(f p a) (sing~ .a x) = here refl
