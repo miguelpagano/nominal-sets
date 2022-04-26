@@ -786,7 +786,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     ... | no x∉xs = {!!}
 
     fresh-minus-sing : ∀ xs x → Fresh xs → Fresh (xs ∖[ x ])
-    fresh-minus-sing = ?
+    fresh-minus-sing = {!!}
 
     card-minus-sing : ∀ xs x → Fresh xs → x ∈ xs →
       card xs ≡ 1 + card (xs ∖[ x ])
@@ -804,9 +804,11 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     ... | yes _ = card-mono xs ys xs#  ys# (λ z∈xs → sub (there z∈xs))
     ... | no x∉xs = ≤-trans (+-monoʳ-≤ 1 ih) (≤-reflexive (≡-sym (card-minus-sing ys x ys# (sub (here refl)))))
       where
-      open import Data.Nat.Properties
+      open import Data.Nat.Properties hiding (_≟_)
       xs⊆ys-[x] : (_∈ xs) ⊆ (_∈ (ys ∖[ x ]))
-      xs⊆ys-[x] {z} z∈xs = {!!}
+      xs⊆ys-[x] {z} z∈xs =
+        ∈-filter⁺ setoid ((¬? ∘ (x ≟_))) ≉-resp-≈₂ (sub (there z∈xs))
+          (λ z=x → ∉-resp-≈ setoid z=x (All¬⇒¬Any x#) z∈xs)
       ih : card xs ≤ card (ys ∖[ x ])
       ih = card-mono xs (ys ∖[ x ]) xs# (fresh-minus-sing ys x ys#) xs⊆ys-[x]
 
