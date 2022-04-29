@@ -14,7 +14,12 @@ open import Data.List.Relation.Unary.AllPairs using (AllPairs; []; _∷_)
   renaming (head to head')
 import Data.List.Membership.DecSetoid as Membership
 open import Data.List.Membership.Setoid.Properties
-open import Data.List.Relation.Unary.Any hiding (tail)
+open import Data.List.Relation.Unary.All
+open import Data.List.Relation.Unary.Any
+open import Data.List.Relation.Unary.Any.Properties
+  using (¬Any[];lift-resp)
+open import Data.List.Relation.Unary.All.Properties
+  using (All¬⇒¬Any;¬Any⇒All¬;Any¬⇒¬All)
 open import Data.Product hiding (map)
 open import Data.Sum hiding (map)
 open import Function hiding (_↔_)
@@ -464,8 +469,6 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   -- TODO: define a function norm : FinPerm → FinPerm that removes
   -- redundant information and prove it correct.
 
-  _≡A_ = _≡_ {A = Carrier}
-
   _∈-dom_ : Carrier → Perm → Set ℓ'
   a ∈-dom π = f π a ≉ a
 
@@ -475,6 +478,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   -- Strict equality
   _∉-dom!_ : Carrier → Perm → Set ℓ
   a ∉-dom! π = f π a ≡A a
+    where _≡A_ = _≡_ {A = Carrier}
 
   _∉-dom_ : Carrier → Perm → Set ℓ'
   a ∉-dom π = f π a ≈ a
@@ -542,13 +546,6 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   comp-id₂ : ∀ a p q → f ⟦ q ⟧ a ∉-dom ⟦ p ⟧ → f ⟦ Comp p q ⟧ a ≈ f ⟦ q ⟧ a
   comp-id₂ a p q ∉dom = ∉dom
 
-  is-ok : ∀ a b → ¬ (a ≉ b) → a ≈ b
-  is-ok a b ¬a≠b with a ≟ b
-  ... | yes eq = eq
-  ... | no ¬eq = contradiction ¬eq ¬a≠b
-
--- TODO: move this to Setoid-Extra
-
   ∈-PERM : (P : PERM) → (_∈-dom (proj₁ P)) ↔ (_∈-dom ⟦ proj₁ (proj₂ P) ⟧)
   ∈-PERM (π , p , eq) = (λ {a} a∈domπ a∉domp → a∈domπ (trans (eq a) a∉domp)) ,
                           λ {a} a∈domp a∉domπ → a∈domp (trans (sym (eq a)) a∉domπ)
@@ -561,13 +558,15 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   module _ where
     open import Data.Nat hiding (_⊔_;_≟_;_^_)
     open import Data.Unit.Polymorphic renaming (⊤ to ⊤ₚ;tt to ttₚ) hiding (_≟_)
+    open import Set-Extra
 
+    open Set A-setoid
     -- TODO: use a better representation; I tried to use Fresh lists
     -- but some proofs where difficult (or impossible).
     Cycle : Set ℓ
     Cycle = List Carrier
 
-  -- TODO: this can be used to ensure that cycles are disjoint.
+    -- TODO: this can be used to ensure that cycles are disjoint.
     -- Alternatively, one can use Disjoint from the stdlib composed
     -- with toList :: Cycle → List Carrier.
     Disj : Rel Cycle (ℓ ⊔ ℓ')
@@ -640,6 +639,10 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     to-FP [] = Id
     to-FP (ρ ∷ ρs) = comp (cycle-to-FP ρ) (to-FP ρs)
 
+
+    -- Given a finite permutation, computes a prefix for the cycle
+    -- starting at the atom a; the second component of the result
+    -- is the last element.
     cycle : Perm → ℕ → (a : Carrier) → Cycle × Carrier
     cycle p ℕ.zero a = f p a ∷  [] , f p a
     cycle p (suc n) a with cycle p n a
@@ -647,6 +650,22 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     ... | yes _ = ρ , aⁿ
     ... | no _ = ρ ∷ʳ f p aⁿ , f p aⁿ
 
+    -- In fact, the last element belongs to the cycle.
+    ∈-cycle⁻-last : (p : Perm) → (n : ℕ) → (a : Carrier) → a ∈-dom p →
+      let (ρ , c) = cycle p n a in
+      c ∈ ρ
+    ∈-cycle⁻-last p ℕ.zero a a∈p = here refl
+    ∈-cycle⁻-last p (suc n) a a∈p with cycle p n a | inspect (cycle p n) a
+    ... | ρ , aⁿ | [ eq ] with a ≟ f p aⁿ
+    ... | no _  = ∈-++⁺ʳ setoid ρ (here refl)
+    ... | yes _ = ih
+      where
+      ih : aⁿ ∈ ρ
+      ih rewrite ≡-sym (≡-cong proj₂ eq) | ≡-sym (≡-cong proj₁ eq) = ∈-cycle⁻-last p n a a∈p
+
+
+    -- The length of the prefix is one more than the fuel
+    -- argument if we haven't closed the cycle.
     length-cycle : ∀ p n a →
       let (ρ , c) = cycle p n a in
       f p c ≉ a → length ρ ≡ suc n
@@ -661,19 +680,8 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       ih : length ρ ≡ suc n
       ih rewrite ≡-sym (≡-cong proj₂ eq) | ≡-sym (≡-cong proj₁ eq) = length-cycle p n a (≉-sym pan≠a)
 
-
-    ∈-cycle⁻-last : (p : Perm) → (n : ℕ) → (a : Carrier) → a ∈-dom p →
-      let (ρ , c) = cycle p n a in
-      c ∈ ρ
-    ∈-cycle⁻-last p ℕ.zero a a∈p = here refl
-    ∈-cycle⁻-last p (suc n) a a∈p with cycle p n a | inspect (cycle p n) a
-    ... | ρ , aⁿ | [ eq ] with a ≟ f p aⁿ
-    ... | no _  = ∈-++⁺ʳ setoid ρ (here refl)
-    ... | yes _ = ih
-      where
-      ih : aⁿ ∈ ρ
-      ih rewrite ≡-sym (≡-cong proj₂ eq) | ≡-sym (≡-cong proj₁ eq) = ∈-cycle⁻-last p n a a∈p
-
+    -- Every element of the cycle is the image of a previous one
+    -- or the start element (which does not belong to the cycle).
     ∈-cycle⁻ : (p : Perm) → (n : ℕ) → (a : Carrier) → a ∈-dom p →
       let (ρ , c) = cycle p n a in
        ∀ b → b ∈ ρ → f⁻¹ p b ≈ a ⊎ f⁻¹ p b ∈ ρ
@@ -701,6 +709,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
           ppa' : b ∈ proj₁ (cycle p n a)
           ppa' rewrite ≡-sym eq₁ = ppaⁿ∈ρ
 
+    -- Every element of the cycle is in the domain of the permutation.
     ∈-cycle⇒∈-dom : (p : Perm) → (n : ℕ) → (a : Carrier) → a ∈-dom p →
       let (ρ , c) = cycle p n a
       in (∀ b → b ∈ ρ → b ∈-dom p) × c ∈-dom p
@@ -721,6 +730,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       ... | inj₁ b∈ρ = proj₁ ih b b∈ρ
       ... | inj₂ (here b=paⁿ) = ∈-dom-resp-≈ p (sym b=paⁿ) (∈-dom⇒∈-dom-f p (proj₂ ih))
 
+    -- The image of the last element doesn't belong to the cycle.
     last-disj :  (p : Perm) → (n : ℕ) → (a : Carrier) → a ∈-dom p →
       let (ρ , c) = cycle p n a in f p c ∉ ρ
     last-disj p ℕ.zero a a∈p (here px) = contradiction px (∈-dom⇒∈-dom-f p a∈p)
@@ -751,107 +761,19 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
         ... | inj₁ paⁿ=a = a≠paⁿ (trans (sym paⁿ=a) (Inverse.inverseʳ p (f p aⁿ)))
         ... | inj₂ paⁿ∈ρ = ih' (∈-resp-≈ setoid (Inverse.inverseʳ p (f p aⁿ)) paⁿ∈ρ)
 
-    Fresh : Pred (List Carrier) (ℓ ⊔ ℓ')
-    Fresh = AllPairs _≉_
-
-    card : List Carrier → ℕ
-    card [] = 0
-    card (x ∷ xs) with x ∈? xs
-    ... | yes _ = card xs
-    ... | no _ = 1 + card xs
-
-
-    open import Data.List.Relation.Unary.All
-    open import Data.List.Relation.Unary.Any.Properties using (¬Any[];lift-resp)
-    open import Data.List.Relation.Unary.All.Properties
-      using (All¬⇒¬Any;¬Any⇒All¬;Any¬⇒¬All)
-
-    length-fresh=card : ∀ xs → Fresh xs → length xs ≡ card xs
-    length-fresh=card [] fr = _≡_.refl
-    length-fresh=card (x ∷ xs) (x∉xs ∷ fr) with x ∈? xs
-    ... | yes x∈xs = contradiction x∈xs (All¬⇒¬Any x∉xs)
-    ... | no _ = ≡-cong (1 +_) (length-fresh=card xs fr)
-
-    _∖[_] : List Carrier → Carrier → List Carrier
-    xs ∖[ x ] = filter (¬? ∘ (x ≟_)) xs
-
-    any-cong : ∀ {ℓ ℓP ℓQ} {A : Set ℓ} {xs : List A}
-             (P : Pred A ℓP) (Q : Pred A ℓQ) → P ⊆ Q → (Any P xs) → (Any Q xs)
-    any-cong P Q sub (here px) = here (sub px)
-    any-cong P Q sub (there any₁) = there (any-cong P Q sub any₁)
-
-    ¬any-cong : ∀ {ℓ ℓP ℓQ} {A : Set ℓ} {xs : List A}
-             (P : Pred A ℓP) (Q : Pred A ℓQ) → Q ⊆ P → ¬ (Any P xs) → ¬ (Any Q xs)
-    ¬any-cong P Q sub nany px = nany (any-cong Q P sub px)
-
-
-    length-minus-sing : ∀ xs x → Fresh xs → x ∈ xs →
-      length xs ≡ 1 + length (xs ∖[ x ])
-    length-minus-sing [] x xs# ()
-    length-minus-sing (x ∷ xs) y (x# ∷ xs#) (here y=x) = ≡-cong (1 +_) (≡-cong length eq'')
-      where
-      y# : All (λ z → ¬ y ≈ z) xs
-      y# = ¬Any⇒All¬ xs (¬any-cong ((λ z → x ≈ z)) ((λ z → y ≈ z)) (λ x₁ → trans (sym y=x) x₁) (All¬⇒¬Any x#))
-      eq' : xs ≡ xs ∖[ y ]
-      eq' = ≡-sym (filter-all (¬? ∘ (y ≟_)) y#)
-      eq'' : xs ≡ (x ∷ xs) ∖[ y ]
-      eq'' with y ≟ x
-      ... | yes eq = eq'
-      ... | no ¬eq = contradiction y=x ¬eq
-    length-minus-sing (x ∷ xs) y (x# ∷ xs#) (there y∈xs) = begin
-      length (x ∷ xs)
-      ≡⟨ _≡_.refl ⟩
-      (1 + length xs)
-      ≡⟨ ≡-cong (1 +_) ih ⟩
-      1 + length (x ∷ (xs ∖[ y ]))
-      ≡⟨ ≡-cong (λ as → 1 + length as) (≡-sym eq') ⟩
-      (1 + length ((x ∷ xs) ∖[ y ])) ∎
-      where
-      open import Relation.Binary.PropositionalEquality hiding (setoid)
-      open ≡-Reasoning
-      ih = length-minus-sing xs y xs# y∈xs
-      eq' : (x ∷ xs) ∖[ y ] ≡ x ∷ (xs ∖[ y ])
-      eq' with y ≟ x
-      ... | yes p = ⊥-elim (All¬⇒¬Any x# (∈-resp-≈ setoid p y∈xs))
-      ... | no ¬q = _≡_.refl
-
-    fresh-minus-sing : ∀ xs x → Fresh xs → Fresh (xs ∖[ x ])
-    fresh-minus-sing xs x #xs = filter⁺ ((¬? ∘ (x ≟_))) #xs
-      where open import Data.List.Relation.Unary.AllPairs.Properties
-
-    card-minus-sing : ∀ xs x → Fresh xs → x ∈ xs →
-      card xs ≡ 1 + card (xs ∖[ x ])
-    card-minus-sing xs x xs# x∈xs =
-      ≡-trans
-        (≡-sym (length-fresh=card xs xs#))
-     (≡-trans
-       (length-minus-sing xs x xs# x∈xs)
-       (≡-cong (1 +_) (length-fresh=card (xs ∖[ x ]) (fresh-minus-sing xs x xs#))))
-
-
-    card-mono : ∀ xs ys → Fresh xs → Fresh ys → (_∈ xs) ⊆ (_∈ ys) → card xs ≤ card ys
-    card-mono [] ys _ _ sub = z≤n
-    card-mono (x ∷ xs) ys (x# ∷ xs#) ys# sub with x ∈? xs
-    ... | yes _ = card-mono xs ys xs#  ys# (λ z∈xs → sub (there z∈xs))
-    ... | no x∉xs = ≤-trans (+-monoʳ-≤ 1 ih) (≤-reflexive (≡-sym (card-minus-sing ys x ys# (sub (here refl)))))
-      where
-      open import Data.Nat.Properties hiding (_≟_)
-      xs⊆ys-[x] : (_∈ xs) ⊆ (_∈ (ys ∖[ x ]))
-      xs⊆ys-[x] {z} z∈xs =
-        ∈-filter⁺ setoid ((¬? ∘ (x ≟_))) ≉-resp-≈₂ (sub (there z∈xs))
-          (λ z=x → ∉-resp-≈ setoid z=x (All¬⇒¬Any x#) z∈xs)
-      ih : card xs ≤ card (ys ∖[ x ])
-      ih = card-mono xs (ys ∖[ x ]) xs# (fresh-minus-sing ys x ys#) xs⊆ys-[x]
 
     _is-supp-of_ : List Carrier → Perm → Set (ℓ ⊔ ℓ')
     xs is-supp-of π = Fresh xs × ((_∈-dom π) ⊆ (_∈ xs))
 
+    -- Good prefixes of cycles starting on a (not included in the
+    -- cycle) and ending in b.
     data _,_~_,_ (p : Perm)  : (a b : Carrier) → Cycle → Set (ℓ ⊔ ℓ') where
       sing~ : ∀ a → f p a ≉ a → p , a ~ f p a , (f p a ∷ [])
       ∷~ : ∀ a c ρ → f p a ≉ a → a ∉ ρ →
            p , (f p a) ~ c , ρ →
            p , a ~ c , (f p a ∷ ρ)
 
+    -- We can concatenate two good cycles if they are disjoint.
     ++-~ : ∀ p ρ ρ' a b c → p , a ~ c , ρ → p , c ~ b , ρ' → a ∉ ρ' → Disj ρ ρ' →
       p , a ~ b , (ρ ++ ρ')
     ++-~ p .(f p a ∷ []) ρ' a b .(f p a) (sing~ .a x) rel' a∉ disj = ∷~ a b ρ' x a∉ rel'
@@ -862,6 +784,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       ih = ++-~ p ρ ρ' (f p a) b c rel rel' (disj-∈ (here refl) disj)
          (disj-tl disj)
 
+    -- The prefix calculated by cycle is a good prefix.
     in~ : ∀ p a n → a ∈-dom p → let (ρ , c) = cycle p n a in p , a ~ c , ρ
     in~ p a zero a∈dom = sing~ {p = p} a a∈dom
     in~ p a (suc n) a∈dom with cycle p n a | inspect (cycle p n) a
@@ -884,24 +807,35 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       boo : f p aⁿ ∉ ρ
       boo rewrite ≡-sym (≡-cong proj₂ eq) | ≡-sym (≡-cong proj₁ eq) = last-disj p n a a∈dom
 
+    -- A closed and good prefix.
     _,_~ᶜ_,_ : (p : Perm) (a b : Carrier) (ρ : Cycle) → Set (ℓ ⊔ ℓ')
     p , a ~ᶜ b , ρ = p , a ~ b , ρ × f p b ≈ a
 
+    -- The starting point doesn't belong to a good cycle.
     ~⇒# : ∀ p ρ a c → p , a ~ c , ρ → a ∉ ρ
     ~⇒# p .(f p a ∷ []) a .(f p a) (sing~ .a x) = All¬⇒¬Any ((≉-sym x) ∷ [])
     ~⇒# p .(f p a ∷ ρ) a c (∷~ .a .c ρ x x₁ rel) = All¬⇒¬Any ((≉-sym x) ∷ (¬Any⇒All¬ ρ x₁))
 
+    -- But the image of the starting point does belong to the cycle.
+    ~⇒h-closed : ∀ p ρ a c → p , a ~ c , ρ → f p a ∈ ρ
+    ~⇒h-closed p .(f p a ∷ []) a .(f p a) (sing~ .a x) = here refl
+    ~⇒h-closed p .(f p a ∷ ρ) a c (∷~ .a .c ρ x x₁ rel) = here refl
+
+    -- A good prefix is fresh.
     ~⇒fresh : ∀ p ρ a c → p , a ~ c , ρ → Fresh ρ
     ~⇒fresh p .(f p a ∷ []) a .(f p a) (sing~ .a x) = [] ∷ []
     ~⇒fresh p .(f p a ∷ ρ) a c (∷~ .a .c ρ x x₁ rel) =
       ¬Any⇒All¬ ρ (~⇒# p ρ (f p a) c rel) ∷ (~⇒fresh p ρ (f p a) c rel)
 
+    -- From which we conclude that prefixes as computed by cycles are fresh.
     cycle-fresh : ∀ p n a → a ∈-dom p →
       let ρ , c = cycle p n a
       in Fresh ρ
     cycle-fresh p n a a∈p = ~⇒fresh p (proj₁ (cycle p n a)) a (proj₂ (cycle p n a))
       (in~ p a n a∈p)
 
+    -- If we have a list of atoms for a permutation, we can compute a
+    -- closed prefix.
     cycle-closed : ∀ (π : Perm)
       (as : List Carrier)
       (a : Carrier)
@@ -933,15 +867,14 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
         (≤-trans (≤-reflexive (length-fresh=card ρ fresh-ρ))
                  (≤-trans |ρ|≤n (≤-reflexive (≡-sym (length-fresh=card as fresh-as)))))
 
-
+    -- The last element belongs to the cycle.
     ~⇒last : ∀ p ρ a c → p , a ~ c , ρ → c ∈ ρ
     ~⇒last p .(f p a ∷ []) a .(f p a) (sing~ .a x) = here refl
     ~⇒last p .(f p a ∷ ρ) a c (∷~ .a .c ρ x x₁ rel) = there (~⇒last p ρ (f p a) c rel)
 
-    ~⇒h-closed : ∀ p ρ a c → p , a ~ c , ρ → f p a ∈ ρ
-    ~⇒h-closed p .(f p a ∷ []) a .(f p a) (sing~ .a x) = here refl
-    ~⇒h-closed p .(f p a ∷ ρ) a c (∷~ .a .c ρ x x₁ rel) = here refl
 
+    -- If an element belongs to the init of the cycle, then its image
+    -- also belongs.
     ~⇒p-closed : ∀ p ρ a c → p , a ~ c , ρ → ∀ b → b ≉ c → b ∈ ρ → f p b ∈ ρ
     ~⇒p-closed p .(f p a ∷ []) a .(f p a) (sing~ .a x) b b≠c (here px) = contradiction px b≠c
     ~⇒p-closed p .(f p a ∷ ρ) a c (∷~ .a .c ρ x x₁ rel) b b≠c (here px) =
@@ -949,6 +882,9 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     ~⇒p-closed p .(f p a ∷ ρ) a c (∷~ .a .c ρ x x₁ rel) b b≠c (there b∈ρ) =
       there (~⇒p-closed p ρ (f p a) c rel b b≠c b∈ρ)
 
+    -- The FinPerm computed from a good cycle coincides with the
+    -- permutation in all but the last element (including the
+    -- starting point).
     out' : ∀ p ρ a c → p , a ~ c , ρ → ∀ b → b ≉ c → b ∈ (a ∷ ρ) →
       f p b ≈ f ⟦ cycle-to-FP' a ρ ⟧ b
     out' p .(f p a ∷ []) a .(f p a) (sing~ .a _) b b≠c (here b=a) =
@@ -1005,6 +941,8 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
               (trans (cong₂ p (trans ih Qb=pa))
                      (Inverse.inverseʳ p a))
 
+    -- For the last element, we know that the action of the FinPerm is
+    -- the starting point.
     out-closed-last : ∀ p ρ a c → p , a ~ c , ρ →
       a ≈ f ⟦ cycle-to-FP' a ρ ⟧ c
     out-closed-last p .(f p a ∷ []) a .(f p a) (sing~ .a x) =
@@ -1024,6 +962,8 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       ih : f p a ≈ f ⟦ cycle-to-FP' (f p a) ρ ⟧ c
       ih = out-closed-last p ρ (f p a) c rel
 
+    -- The previous two lemmas allows us to deduce the correctness for
+    -- closed and good prefixes.
     out-closed : ∀ p ρ a c → p , a ~ᶜ c , ρ → ∀ b → b ∈ (a ∷ ρ) →
       f p b ≈ f ⟦ cycle-to-FP' a ρ ⟧ b
     out-closed p ρ a c (rel , pc=a) b b∈ρ' with b ≟ c
@@ -1040,7 +980,6 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       where
       open ≈-Reasoning setoid
     ... | no b≠c = out' p ρ a c rel b b≠c b∈ρ'
-
 
     -- Given a permutation and a list of atoms we construct the list
     -- of cycles.
