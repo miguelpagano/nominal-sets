@@ -561,6 +561,20 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     open import Set-Extra
 
     open Set A-setoid
+
+    atoms! : FinPerm → List Carrier
+    atoms! p = proj₁ (setify (atoms' p))
+
+    fresh-atoms! : ∀ p → Fresh (atoms! p)
+    fresh-atoms! p with setify (atoms' p)
+    ... | ats , ats# , _ = ats#
+
+    dom⊆atoms! : ∀ p → (_∈-dom ⟦ p ⟧) ⊆ (_∈ atoms! p)
+    dom⊆atoms! p {a} a∈dom with setify (atoms' p)
+    ... | ats , _ , sub with a ∈? atoms' p
+    ... | yes p = sub p
+    ... | no ¬q = contradiction (∉-atoms'-∉ p ¬q) a∈dom
+
     -- TODO: use a better representation; I tried to use Fresh lists
     -- but some proofs where difficult (or impossible).
     Cycle : Set ℓ
@@ -981,6 +995,23 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       open ≈-Reasoning setoid
     ... | no b≠c = out' p ρ a c rel b b≠c b∈ρ'
 
+
+    correct-perm-at : ∀ p a → a ∈ atoms' p →
+      Σ[ ρ ∈ Cycle ] ( ∀ b → b ∈ (a ∷ ρ) →
+      f ⟦ p ⟧ b ≈ f ⟦ cycle-to-FP' a ρ ⟧ b)
+    correct-perm-at p a a∈at = ρ , out-closed ⟦ p ⟧ ρ a c prf
+      where
+      ats = atoms! p
+      n = length ats
+      ρ : Cycle
+      ρ = proj₁ (cycle ⟦ p ⟧ n a)
+      c : Carrier
+      c = proj₂ (cycle ⟦ p ⟧ n a)
+      a∈dom = proj₂ (∈-filter⁻ setoid (∈-dom? ⟦ p ⟧) (∈-dom-resp-≈ ⟦ p ⟧) {xs = atoms p} a∈at)
+      prf : ⟦ p ⟧ , a ~ᶜ c , ρ
+      prf = in~ ⟦ p ⟧ a n a∈dom ,
+            cycle-closed ⟦ p ⟧ ats a (fresh-atoms! p , dom⊆atoms! p) a∈dom
+
     -- Given a permutation and a list of atoms we construct the list
     -- of cycles.
     from-atoms : Perm → ℕ → List Carrier → List Cycle → List Cycle
@@ -991,7 +1022,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
 
     fromFP : FinPerm → List Cycle
     fromFP p = from-atoms ⟦ p ⟧ n sup []
-      where sup = reverse (atoms' p)
+      where sup = atoms' p
             n = length sup
 
     norm : FinPerm → FinPerm
@@ -1029,22 +1060,10 @@ module Ex where
   open Func
   open Inverse
   -- h' : ℕ
-  -- h' = {!cycle ⟦ Swap 1 1 ⟧ 0 1 !}
+  -- h' = {!norm (Comp (Swap 8 8) (to-FP cycles)) !}
 
+  -- If we put (Swap 9 9) in front of (to-FP cycles) we don't have a
+  -- definitional equality because we first compute the cycle for 9.
   test₁ : norm (Comp (Swap 8 8) (to-FP cycles)) ≡
-          norm (Comp (Swap 9 9) (to-FP cycles))
+          norm (Comp (to-FP cycles) (Swap 9 9))
   test₁ = _≡_.refl
-{-
-  h = (Comp (Swap 7 1) (Comp (Swap 1 3) (Swap 3 5)))
-  open Func
-  open Inverse
-  test₂ : norm (Comp (Swap 8 8) (to-FP cycles)) ≡
-          Comp (Comp (Swap 2 4) (Swap 4 6))
-          (Comp (Swap 1 3) (Comp (Swap 3 5) (Swap 5 7)))
-  test₂ = {!!}
-
-  prueba : (List ℕ) × ℕ
-  prueba = {!cycle-for-at 0 7 ⟦ h ⟧ !} -- cycle-for-at 0 1 ⟦ h ⟧
-  lista : Cycle
-  lista = 1 ∷ 1 ∷ []
--}
