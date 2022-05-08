@@ -106,13 +106,13 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
     -- notion of not being an atom in the domain of the FinPerm.
     private
       is-supp' : Pred X (ℓ ⊔ ℓ' ⊔ ℓP ⊔ ℓx')
-      is-supp' x = (π : PERM) → (predicate P ⊆ (_∉ atoms' (proj₁ (proj₂ π)))) →
+      is-supp' x = (π : PERM) → (predicate P ⊆ (_∉ support (proj₁ (proj₂ π)))) →
         (π ∙ₐ x) ≈X x
 
     -- Both notions are equivalent.
       imp : is-supp ⊆ is-supp'
       imp pred π inv = pred π (λ {a} Pa → proj₂ (∉-PERM π)
-         (∉-atoms'-∉ (proj₁ (proj₂ π)) (inv {a} Pa)))
+         (∉-support-∉ (proj₁ (proj₂ π)) (inv {a} Pa)))
 
       imp' : is-supp' ⊆ is-supp
       imp' pred Π@(π , p , _) inv = pred Π (λ {a} Pa → ∉-∉-atoms p (proj₁ (∉-PERM Π) ((inv {a} Pa))))
@@ -164,8 +164,8 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
 
       -- Thm. 2.2 should follow from the previous one, because:
       --  1. π ≈ toPERM (norm p) , p = proj₁ (proj₂ π)
-      --  2. atoms (norm p) ≡ atoms' (norm p)
-      --  3. atoms' (norm p) ≈ atoms' p
+      --  2. atoms (norm p) ≡ support (norm p)
+      --  3. support (norm p) ≈ support p
 
   -- TODO: Thm. 2.3
 

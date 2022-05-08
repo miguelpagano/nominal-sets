@@ -131,17 +131,20 @@ module Set (A-setoid : DecSetoid ℓ ℓ') where
     ih : card xs ≤ card (ys ∖[ x ])
     ih = card-mono xs (ys ∖[ x ]) xs# (fresh-minus-sing ys x ys#) xs⊆ys-[x]
 
-  setify : (xs : List Carrier) → Σ[ as ∈ List Carrier ] (Fresh as × (_∈ xs) ⊆ (_∈ as))
-  setify [] = [] , [] , id
+  setify : (xs : List Carrier) → Σ[ as ∈ List Carrier ] (Fresh as × (_∈ xs) ⊆ (_∈ as) × (_∈ as) ⊆ (_∈ xs))
+  setify [] = [] , [] , id , id
   setify (x ∷ xs) with setify xs
-  ... | as , #as , incl with x ∈? as
-  ... | yes x∈as = as , #as , incl'
+  ... | as , #as , incl , clni with x ∈? as
+  ... | yes x∈as = as , #as , incl' , there ∘ clni
     where
     incl' : (_∈ x ∷ xs) ⊆ (_∈ as)
     incl' (here z=x) = ∈-resp-≈ setoid (sym z=x) x∈as
     incl' (there z∈x:xs) = incl z∈x:xs
-  ... | no ¬p = (x ∷ as) , ¬Any⇒All¬ as ¬p ∷ #as , incl'
+  ... | no ¬p = (x ∷ as) , ¬Any⇒All¬ as ¬p ∷ #as , incl' , clni'
     where
     incl' : (_∈ x ∷ xs) ⊆ (_∈ x ∷ as)
     incl' (here z=x) = here z=x
     incl' (there z∈x:xs) = there (incl z∈x:xs)
+    clni' : (_∈ x ∷ as) ⊆ (_∈ x ∷ xs)
+    clni' (here z=x) = here z=x
+    clni' (there z∈x:xs) = there (clni z∈x:xs)

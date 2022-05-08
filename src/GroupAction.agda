@@ -197,7 +197,7 @@ GSet-× A B = record
       }
     }
   }
-  where open module ∙A = Action (act A)     
+  where open module ∙A = Action (act A)
         open module ∙B = Action (act B)
 
 -- Projections are equivariants
@@ -268,7 +268,7 @@ GSet-+ A B = record
   { set = set A ⊎ₛ set B
   ; act = record
      { action = record
-       { f = λ (g , s) →  [ (λ x → inj₁ (g ∙A.∙ₐ x)) , (λ x → inj₂ (g ∙B.∙ₐ x)) ]′ s  
+       { f = λ (g , s) →  [ (λ x → inj₁ (g ∙A.∙ₐ x)) , (λ x → inj₂ (g ∙B.∙ₐ x)) ]′ s
        ; cong = λ { (g≈g' , inj₁ a≈a') → inj₁ (Func.cong ∙A.action (g≈g' , a≈a'))
                   ; (g≈g' , inj₂ b≈b') → inj₂ (Func.cong ∙B.action (g≈g' , b≈b')) }
        }
@@ -289,10 +289,10 @@ GSet-+ A B = record
   { F = record
         { f = λ x → [ f (F H) , f (F K) ]′ x
         ; cong = λ { (inj₁ c≈c') → Func.cong (F H) c≈c'
-                   ; (inj₂ c≈c') → Func.cong (F K) c≈c' }    
+                   ; (inj₂ c≈c') → Func.cong (F K) c≈c' }
         }
   ; isEquivariant = λ { (inj₁ x) g → isEquivariant H x g
-                      ; (inj₂ x) g → isEquivariant K x g } 
+                      ; (inj₂ x) g → isEquivariant K x g }
   }
   where open Equivariant
         module A= = ≈-Reasoning (set A)
@@ -302,7 +302,7 @@ GSet-+ A B = record
         open Setoid (set B) renaming (Carrier to B'; _≈_ to _≈B_)
         open Action (act A) renaming (_∙ₐ_ to _∙A_)
         open Action (act B) renaming (_∙ₐ_ to _∙B_)
-        open Action (act C) renaming (_∙ₐ_ to _∙C_)        
+        open Action (act C) renaming (_∙ₐ_ to _∙C_)
 
 -- Injections are equivariants
 inject₁ : Equivariant A (GSet-+ A B)
@@ -317,7 +317,7 @@ inject₁ {A = A} {B = B} = record
         open Func
         open Setoid (set A) renaming (Carrier to A'; _≈_ to  _≈A_)
         open Setoid (set B) renaming (Carrier to B'; _≈_ to  _≈B_)
-        A-setoid = set A        
+        A-setoid = set A
 
 inject₂ : Equivariant B (GSet-+ A B)
 inject₂ {B = B} {A = A} = record
@@ -325,13 +325,13 @@ inject₂ {B = B} {A = A} = record
         { f = inj₂
         ; cong = inj₂
         }
-  ; isEquivariant = λ x g → inj₂ (refl B-setoid)    
+  ; isEquivariant = λ x g → inj₂ (refl B-setoid)
   }
   where open Equivariant
         open Func
         open Setoid (set A) renaming (Carrier to A'; _≈_ to  _≈A_)
         open Setoid (set B) renaming (Carrier to B'; _≈_ to  _≈B_)
-        B-setoid = set B         
+        B-setoid = set B
 
 open Equivariant
 

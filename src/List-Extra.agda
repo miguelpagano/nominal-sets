@@ -9,6 +9,7 @@
 module List-Extra where
 
 open import Level
+open import Algebra using (Op₂)
 open import Data.Empty
 open import Data.Sum renaming (_⊎_ to _∨_;map to map+)
 open import Data.Product renaming (Σ to Σₓ;map to mapₓ)
@@ -27,6 +28,31 @@ module Extra {c ℓ : Level} (A : Setoid c ℓ) where
 
   open Any A -- renaming (_∈_ to _∈'_;_∉_ to _∉_)
   open Setoid A
+  module _ where
+    open import Data.List.Relation.Unary.Any
+    open import Data.List.Relation.Unary.Any.Properties
+
+    ∉-concat⁺ : {v : Carrier} → ∀ xss →
+        ¬ (Any (v ∈_) xss) → v ∉ concat xss
+    ∉-concat⁺ xss v∈any v∈c[xss] = v∈any (∈-concat⁻ A xss v∈c[xss]) 
+
+  module _ where
+    import Data.List.Relation.Unary.Any.Properties as Any
+    import Data.List.Membership.Setoid as Membership
+    import Data.List.Relation.Binary.Equality.Setoid as Equality
+    import Data.List.Relation.Unary.Unique.Setoid as Unique
+
+    open Setoid A using (_≈_)
+    open Equality A using (≋-setoid)
+    open Membership ≋-setoid using (find) renaming (_∈_ to _∈ₗ_)
+
+    ∉-concat⁻ : {v : Carrier} {xs : List Carrier} → ∀ xss →
+      v ∉ concat xss → xs ∈ₗ xss → v ∉ xs
+    ∉-concat⁻ xss v∉c[xss] xs∈xss v∈xs = v∉c[xss] (∈-concat⁺′ A v∈xs xs∈xss)
+
+    ∉-concat⁻' : {v : Carrier} {xs : List Carrier} → ∀ xss →
+      v ∉ concat (xs ∷ xss) → v ∉ concat xss
+    ∉-concat⁻' {xs = xs} xss v∉c[xss] xs∈xss = v∉c[xss] (∈-++⁺ʳ A xs xs∈xss)
 
 
   ∉-++⁻ : {v : Carrier} → ∀ xs {ys} → v ∉ xs ++ ys → (v ∉ xs) × (v ∉ ys)
