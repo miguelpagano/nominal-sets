@@ -1207,9 +1207,22 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     ... | yes _ = from-atoms π n ls ρs
     ... | no _ = from-atoms π n ls ((x ∷ proj₁ (cycle π n x)) ∷ ρs)
 
+    goal-u : ∀ p n as rs y → y ∈ concat rs → y ∈ concat (from-atoms p n as rs)
+    goal-u p n [] rs y y∈ats = y∈ats
+    goal-u p n (x ∷ as) rs y y∈ats with any? (x ∈?_) rs
+    ... | yes _ = goal-u p n as rs y y∈ats
+    ... | no _ = goal-u p n as (((x ∷ proj₁ (cycle p n x)) ∷ rs)) y (∈-++⁺ʳ setoid (x ∷ proj₁ (cycle p n x)) y∈ats)
+
+
     goal' : ∀ p n as rs y → y ∈ as → y ∈ concat (from-atoms p n as rs)
-    goal' p n (a ∷ as) rs y y∈ats = {!!}
-    
+    goal' p n (x ∷ as) rs y (here eq) with any? (x ∈?_) rs
+    ... | yes ci = goal-u p n as rs y (∈-resp-≈ setoid (sym eq) (∈-concat⁺ setoid ci)) -- goal_u p n as rs y y∈ats
+    ... | no _ = goal-u p n as ( ((x ∷ proj₁ (cycle p n x)) ∷ rs)) y
+      (∈-concat⁺ setoid {xss = (x ∷ proj₁ (cycle p n x)) ∷ rs} (here  (here eq)))
+    goal' p n (x ∷ as) rs y (there y∈ats) with any? (x ∈?_) rs
+    ... | yes ci = goal' p n as rs y y∈ats
+    ... | no _ = goal' p n as ( ((x ∷ proj₁ (cycle p n x)) ∷ rs)) y y∈ats
+
     data _~*_ (p : Perm)  : List Cycle → Set (ℓ ⊔ ℓ') where
       []* : p ~* []
       ∷* : ∀ a c ρ ρs → p ~* ρs →
