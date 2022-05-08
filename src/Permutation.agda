@@ -675,8 +675,8 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     disj-∷⁺ : ∀ {ρ} {ρ'} {a} → a ∉ ρ' → Disj ρ' ρ → Disj ρ' (a ∷ ρ)
     disj-∷⁺ {ρ} {[]} {a} a∉ρ' disj = []
     disj-∷⁺ {ρ} {x ∷ ρ'} {a} a∉ρ' disj =
-      All¬⇒¬Any (≉-sym (∉-∷⁼ (here refl) a∉ρ') ∷ ¬Any⇒All¬ ρ (disj-∈ (here refl) disj)) ∷
-      (disj-∷⁺ (∉-∷⁼ᵗ a∉ρ') (disj-tl disj))
+      All¬⇒¬Any (≉-sym (∉-∷⁻ (here refl) a∉ρ') ∷ ¬Any⇒All¬ ρ (disj-∈ (here refl) disj)) ∷
+      (disj-∷⁺ (∉-∷⁻ᵗ a∉ρ') (disj-tl disj))
 
     disj⁺-sing₂ : ∀ ρ a → a ∉ ρ → Disj ρ (a ∷ [])
     disj⁺-sing₂ ρ a a∉ρ = disj-∷⁺ a∉ρ (disj-[]₁ ρ)
@@ -686,9 +686,9 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     disj-comm {ρ' = ρ'} [] = disj-[]₁ ρ'
     disj-comm {ρ' = []} (_ ∷ _) = []
     disj-comm {x ∷ ρ} {ρ' = x' ∷ ρ'} (px ∷ disj) =
-      All¬⇒¬Any (≉-sym (∉-∷⁼ (here refl) px) ∷
+      All¬⇒¬Any (≉-sym (∉-∷⁻ (here refl) px) ∷
       ¬Any⇒All¬ ρ (disj-∈ (here refl) (disj-comm disj))) ∷
-      disj-∷⁺ (∉-∷⁼ᵗ px) (disj-tl (disj-comm disj))
+      disj-∷⁺ (∉-∷⁻ᵗ px) (disj-tl (disj-comm disj))
 
     disj-concat : ∀ ρ ρs → All (Disj ρ) ρs → ∀ a → a ∈ ρ → a ∉ concat ρs
     disj-concat r rs disj a a∈r a∈rs with ∈-concat⁻′ setoid rs a∈rs
@@ -729,7 +729,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       f ⟦ comp P Q ⟧ c
       ≈⟨ comp-corr P Q c ⟩
       f ⟦ Comp P Q ⟧ c
-      ≈⟨ transp-respects-≈ b a (cycle'-support a as c c≉a (∉-∷⁼ᵗ c∉xs)) ⟩
+      ≈⟨ transp-respects-≈ b a (cycle'-support a as c c≉a (∉-∷⁻ᵗ c∉xs)) ⟩
       f ⟦ P ⟧ c
       ≈⟨ reflexive (transp-eq₃ b≉c c≉a) ⟩
       c ∎
@@ -738,11 +738,11 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       P = Swap b a
       Q = cycle-to-FP' a as
       c≉a : c ≉ a
-      c≉a = ∉-∷⁼ (here refl) c∉xs
+      c≉a = ∉-∷⁻ (here refl) c∉xs
 
     cycle-support : ∀ as c → c ∉ as → c ∉-dom ⟦ cycle-to-FP as ⟧
     cycle-support [] c c∉xs = refl
-    cycle-support (a ∷ as) c c∉xs = cycle'-support a as c (∉-∷⁼ (here refl) c∉xs) (∉-∷⁼ᵗ c∉xs)
+    cycle-support (a ∷ as) c c∉xs = cycle'-support a as c (∉-∷⁻ (here refl) c∉xs) (∉-∷⁻ᵗ c∉xs)
 
     to-FP : List Cycle → FinPerm
     to-FP [] = Id

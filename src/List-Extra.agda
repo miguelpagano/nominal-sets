@@ -71,15 +71,15 @@ module Extra {c ℓ : Level} (A : Setoid c ℓ) where
   ∉-++⁻ʳ : {v : Carrier} → ∀ xs {ys} → v ∉ xs ++ ys → (v ∉ ys)
   ∉-++⁻ʳ xs v∉xs++ys = proj₂ (∉-++⁻ xs v∉xs++ys)
 
-  ∉-∷⁼ : {a d : Carrier} {xs : List Carrier} → a ∈ xs → d ∉ xs → d ≉ a
-  ∉-∷⁼ a∈xs d∉xs d≈a = d∉xs (∈-resp-≈ A (sym d≈a) a∈xs)
+  ∉-∷⁻ : {a d : Carrier} {xs : List Carrier} → a ∈ xs → d ∉ xs → d ≉ a
+  ∉-∷⁻ a∈xs d∉xs d≈a = d∉xs (∈-resp-≈ A (sym d≈a) a∈xs)
 
   ∉-∷⁺ : {a d : Carrier} {xs : List Carrier} → d ≉ a → d ∉ xs → d ∉ (a ∷ xs)
   ∉-∷⁺ d≢a d∉xs (here px) = d≢a px
   ∉-∷⁺ d≢a d∉xs (there d∈a∷xs) = d∉xs d∈a∷xs
 
-  ∉-∷⁼ᵗ : {a d : Carrier} {xs : List Carrier} → d ∉ (a ∷ xs) → d ∉ xs
-  ∉-∷⁼ᵗ d∉∷ d∈xs = d∉∷ (there d∈xs)
+  ∉-∷⁻ᵗ : {a d : Carrier} {xs : List Carrier} → d ∉ (a ∷ xs) → d ∉ xs
+  ∉-∷⁻ᵗ d∉∷ d∈xs = d∉∷ (there d∈xs)
 
 open import Relation.Unary renaming (Decidable to Decidableᵤ) hiding (_∈_;_∉_)
 open import Relation.Nullary
