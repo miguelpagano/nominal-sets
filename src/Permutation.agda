@@ -17,11 +17,11 @@ import Data.List.Membership.DecSetoid as Membership
 open import Data.List.Membership.Setoid.Properties
 open import Data.List.Relation.Unary.All
   renaming (map to mapAll; tail to tailAll; head to headAll)
+open import Data.List.Relation.Unary.All.Properties
+  using (All¬⇒¬Any;¬Any⇒All¬;Any¬⇒¬All;¬All⇒Any¬)
 open import Data.List.Relation.Unary.Any
 open import Data.List.Relation.Unary.Any.Properties
-  using (¬Any[];lift-resp)
-open import Data.List.Relation.Unary.All.Properties
-  using (All¬⇒¬Any;¬Any⇒All¬;Any¬⇒¬All)
+  using (¬Any[];lift-resp;any⁻)
 open import Data.Nat hiding (_⊔_;_≟_;_^_)
 open import Data.Nat.Properties hiding (_≟_)
 open import Data.Product hiding (map)
@@ -30,8 +30,11 @@ open import Data.Unit.Polymorphic renaming (⊤ to ⊤ₚ)
   using (tt)
 open import Function hiding (_↔_)
 open import Function.Construct.Composition renaming (inverse to _∘ₚ_)
+  hiding (inverseʳ;inverseˡ)
 open import Function.Construct.Identity renaming (inverse to idₚ)
+  hiding (inverseʳ;inverseˡ)
 open import Function.Construct.Symmetry renaming (inverse to _⁻¹)
+  hiding (inverseʳ;inverseˡ)
 open import Relation.Binary
 import Relation.Binary.Reasoning.Setoid as ≈-Reasoning
 open import Relation.Binary.PropositionalEquality
@@ -136,11 +139,11 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   perm-injective : (π : Perm) → Injective _≈_ _≈_ (f π)
   perm-injective π {c} {d} eq = begin
     c
-    ≈⟨ sym (Inverse.inverseʳ π c) ⟩
+    ≈⟨ sym (inverseʳ π c) ⟩
     f⁻¹ π (f π c)
     ≈⟨ cong₂ π eq ⟩
     f⁻¹ π (f π d)
-    ≈⟨ Inverse.inverseʳ π d ⟩
+    ≈⟨ inverseʳ π d ⟩
     d ∎
     where open ≈-Reasoning setoid
 
@@ -407,7 +410,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   _∉-dom_ : Carrier → Perm → Set ℓ'
   a ∉-dom π = f π a ≈ a
 
-  ¬∈-dom⇒∉-dom : {π : Perm} → (λ x → ¬ (x ∈-dom π)) ⊆ (_∉-dom π)
+  ¬∈-dom⇒∉-dom : {π : Perm} → (¬_ ∘ (_∈-dom π)) ⊆ (_∉-dom π)
   ¬∈-dom⇒∉-dom {π} {a} ¬a∈dom = decidable-stable (f π a ≟ a) ¬a∈dom
 
   atoms : FinPerm → List Carrier
@@ -419,19 +422,19 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
 
   at-swap : ∀ a b → a ∈ atoms (Swap a b) × b ∈ atoms (Swap a b)
   at-swap a b  with a ≟ b
-  ... | yes px = here refl , here (sym px)
+  ... | yes a=b = here refl , here (sym a=b)
   ... | no _ = here refl , there (here refl)
 
   at-swap⁻ : ∀ a b {c} → c ∈ atoms (Swap a b) → c ≈ a ⊎ c ≈ b
-  at-swap⁻ a b {c} c∈ with a ≟ b
-  at-swap⁻ a b {c} (here px₁) | yes px = inj₁ px₁
-  at-swap⁻ a b {c} (here px) | no _ = inj₁ px
-  at-swap⁻ a b {c} (there (here px)) | no _ = inj₂ px
+  at-swap⁻ a b {c} c∈at with a ≟ b
+  at-swap⁻ a b {c} (here c=a) | yes _ = inj₁ c=a
+  at-swap⁻ a b {c} (here c=a) | no _ = inj₁ c=a
+  at-swap⁻ a b {c} (there (here c=b)) | no _ = inj₂ c=b
 
   at-swap-∉ : ∀ {a b c} → c ≉ a → c ≉ b → c ∉ atoms (Swap a b)
   at-swap-∉ {a} {b} c≠a c≠b c∈ with at-swap⁻ a b c∈
-  ... | inj₁ px = contradiction px c≠a
-  ... | inj₂ px = contradiction px c≠b
+  ... | inj₁ c=a = contradiction c=a c≠a
+  ... | inj₂ c=b = contradiction c=b c≠b
 
   ∉-at-swap : ∀ {a b c} → c ∉ atoms (Swap a b) → c ≉ a × c ≉ b
   ∉-at-swap {a} {b} {c} c∉ =
@@ -456,7 +459,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   ∈-dom⇒∈-dom-f π {a} a∈domp fa∉domp = a∈domp (perm-injective π fa∉domp)
 
   ∉-∉⁻¹ : ∀ {q a} → a ∉-dom ⟦ q ⟧ → f⁻¹ ⟦ q ⟧ a ≈ a
-  ∉-∉⁻¹ {q} {a} a∉dom = trans (sym (cong₂ ⟦ q ⟧ a∉dom)) (Inverse.inverseʳ ⟦ q ⟧ a)
+  ∉-∉⁻¹ {q} {a} a∉dom = trans (sym (cong₂ ⟦ q ⟧ a∉dom)) (inverseʳ ⟦ q ⟧ a)
 
   ∉-atoms-∉! : ∀ {q a} → a ∉ atoms q → a ∉-dom! ⟦ q ⟧
   ∉-atoms-∉! {Id} {a} a∉at = _≡_.refl
@@ -511,39 +514,36 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   fp-supp : ∀ p → atoms! p is-supp-of ⟦ p ⟧
   fp-supp p = fresh-atoms! p , dom⊆atoms! p
 
-
   _⊆ₛ_ : Rel FinPerm (ℓ ⊔ ℓ')
-  p ⊆ₛ q = ∀ a → a ∈ support p → f ⟦ p ⟧ a ≈ f ⟦ q ⟧ a
+  p ⊆ₛ q = All (λ a → f ⟦ p ⟧ a ≈ f ⟦ q ⟧ a) (support p)
 
   ?⊆ₛ : ∀ p q → Dec (p ⊆ₛ q)
-  ?⊆ₛ p q = dec-eq (support p)
-    where
-    dec-eq : (as : List Carrier) → Dec (∀ a → a ∈ as → f ⟦ p ⟧ a ≈ f ⟦ q ⟧ a)
-    dec-eq [] = yes (λ a₁ x → ⊥-elim (¬Any[] x))
-    dec-eq (a ∷ as) with f ⟦ p ⟧ a ≟ f ⟦ q ⟧ a
-    ... | no ¬p=q = no (λ x → contradiction (x a (here refl)) ¬p=q)
-    ... | yes p=q with dec-eq as
-    ... | no ¬as = no (λ x → ¬as (λ a₂ x₁ → x a₂ (there x₁)))
-    ... | yes as' = yes (λ { a₂ (here px) → trans (cong₁ ⟦ p ⟧ px) (trans p=q (cong₁ ⟦ q ⟧ (sym px))) ; a₂ (there x) → as' a₂ x })
+  ?⊆ₛ p q = all? (λ a → f ⟦ p ⟧ a ≟ f ⟦ q ⟧ a) (support p)
 
   _≈ₛ_ : Rel FinPerm (ℓ ⊔ ℓ')
   p ≈ₛ q = p ⊆ₛ q × q ⊆ₛ p
 
+  ≈ₛ-dec : ∀ p q → Dec (p ≈ₛ q)
+  ≈ₛ-dec p q = (?⊆ₛ p q) ×-dec (?⊆ₛ q p)
+
+  ⊆ₛ-∈⁻ : ∀ {q p} → q ⊆ₛ p → ∀ {a} → a ∈ support q → f ⟦ q ⟧ a ≈ f ⟦ p ⟧ a
+  ⊆ₛ-∈⁻ {q} {p} sub a∈q = all-∈⁻ (support q) sub qx=py a∈q
+    where
+    qx=py : (λ a → f ⟦ q ⟧ a ≈ f ⟦ p ⟧ a) Respects _≈_
+    qx=py b=c qb=pb = trans (cong₁ ⟦ q ⟧ (sym b=c)) (trans qb=pb (cong₁ ⟦ p ⟧ b=c))
+
   ≈ₛ⇒≈-sup : ∀ p q → q ⊆ₛ p → ∀ a → (a ∉ support p → a ∉ support q)
   ≈ₛ⇒≈-sup p q rel a a∉p a∈q with ∈-filter⁻ setoid (∈-dom? ⟦ q ⟧) (∈-dom-resp-≈ ⟦ q ⟧) {xs = atoms q} a∈q
-  ... | a∈atq , qa≉a = contradiction ble (≉-resp-≈₁ (sym (rel a a∈q)) qa≉a)
-    where ble = ∉-support-∉ p a∉p
+  ... | a∈atq , qa≉a = contradiction a∉domp (≉-resp-≈₁ (sym qa=pa) qa≉a)
+    where
+    a∉domp = ∉-support-∉ p a∉p
+    qa=pa = ⊆ₛ-∈⁻ {q} {p} rel a∈q
 
   ≈ₛ⇒≈ₚ : ∀ p q → p ≈ₛ q → ⟦ p ⟧ ≈ₚ ⟦ q ⟧
   ≈ₛ⇒≈ₚ p q (p<q , q<p) a with a ∈? support p
-  ... | yes a∈p = p<q a a∈p
-  ... | no a∉p = trans (∉-support-∉ p a∉p ) (sym (∉-support-∉ q (≈ₛ⇒≈-sup p q q<p a a∉p)) )
+  ... | yes a∈p = ⊆ₛ-∈⁻ {p} {q} p<q a∈p
+  ... | no a∉p = trans (∉-support-∉ p a∉p) (sym (∉-support-∉ q (≈ₛ⇒≈-sup p q q<p a a∉p)))
 
-  ≈ₚ⇒≈ₛ : ∀ p q → ⟦ p ⟧ ≈ₚ ⟦ q ⟧ → p ⊆ₛ q
-  ≈ₚ⇒≈ₛ p q equ a _ = equ a
-
-  ≈ₛ-dec : ∀ p q → Dec (p ≈ₛ q)
-  ≈ₛ-dec p q = (?⊆ₛ p q) ×-dec (?⊆ₛ q p)
 
   -- This is our carrier, we use capital letters to refer to the
   -- image of ⟦_⟧ on the whole FinPerm. Notice that we could have
@@ -619,7 +619,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
                   }
                 ; identity = (λ _ _ → refl) , λ _ _ → refl
                 }
-              ; inverse = Inverse.inverseʳ ∘ proj₁ , Inverse.inverseˡ ∘ proj₁
+              ; inverse = inverseʳ ∘ proj₁ , inverseˡ ∘ proj₁
               ; ⁻¹-cong = λ {f} {g} → Group.⁻¹-cong Sym-A {proj₁ f} {proj₁ g}
               }
             }
@@ -672,32 +672,30 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     disj-∈ (here a≈x) (x∉ρ' ∷ _) = ∉-resp-≈ setoid (sym a≈x) x∉ρ'
     disj-∈ (there a∈ρ) (_ ∷ disj) = disj-∈ a∈ρ disj
 
+    disj-∉⁺ : ∀ {x a ρ ρ'} → Disj (x ∷ ρ') ρ → a ∉ x ∷ ρ' → x ∉ a ∷ ρ
+    disj-∉⁺ {ρ = ρ} disj a∉ρ' = All¬⇒¬Any
+      (≉-sym (∉-∷⁻ (here refl) a∉ρ') ∷ ¬Any⇒All¬ ρ (disj-∈ (here refl) disj))
+
     disj-∷⁺ : ∀ {ρ} {ρ'} {a} → a ∉ ρ' → Disj ρ' ρ → Disj ρ' (a ∷ ρ)
     disj-∷⁺ {ρ} {[]} {a} a∉ρ' disj = []
-    disj-∷⁺ {ρ} {x ∷ ρ'} {a} a∉ρ' disj =
-      All¬⇒¬Any (≉-sym (∉-∷⁻ (here refl) a∉ρ') ∷ ¬Any⇒All¬ ρ (disj-∈ (here refl) disj)) ∷
-      (disj-∷⁺ (∉-∷⁻ᵗ a∉ρ') (disj-tl disj))
+    disj-∷⁺ {ρ} {x ∷ ρ'} {a} a∉ρ' disj = disj-∉⁺ disj a∉ρ' ∷ (disj-∷⁺ (∉-∷⁻ᵗ a∉ρ') (disj-tl disj))
 
     disj⁺-sing₂ : ∀ ρ a → a ∉ ρ → Disj ρ (a ∷ [])
     disj⁺-sing₂ ρ a a∉ρ = disj-∷⁺ a∉ρ (disj-[]₁ ρ)
 
-
-    disj-comm : ∀ {ρ} {ρ'} → Disj ρ ρ' → Disj ρ' ρ
-    disj-comm {ρ' = ρ'} [] = disj-[]₁ ρ'
-    disj-comm {ρ' = []} (_ ∷ _) = []
-    disj-comm {x ∷ ρ} {ρ' = x' ∷ ρ'} (px ∷ disj) =
-      All¬⇒¬Any (≉-sym (∉-∷⁻ (here refl) px) ∷
-      ¬Any⇒All¬ ρ (disj-∈ (here refl) (disj-comm disj))) ∷
-      disj-∷⁺ (∉-∷⁻ᵗ px) (disj-tl (disj-comm disj))
+    disj-sym : Symmetric Disj
+    disj-sym {y = ρ'} [] = disj-[]₁ ρ'
+    disj-sym {y = []} (_ ∷ _) = []
+    disj-sym {x = x ∷ ρ} {x' ∷ ρ'} (px ∷ disj) = disj-∷⁺ px (disj-sym disj)
 
     disj-concat : ∀ ρ ρs → All (Disj ρ) ρs → ∀ a → a ∈ ρ → a ∉ concat ρs
-    disj-concat r rs disj a a∈r a∈rs with ∈-concat⁻′ setoid rs a∈rs
-    disj-concat r (x ∷ _) (px ∷ disj) a a∈r a∈rs | r' , a∈r' , here px₁ = disj-∈ a∈x (disj-comm px) a∈r
+    disj-concat ρ ρs disj a a∈ρ a∈ρs with ∈-concat⁻′ setoid ρs a∈ρs
+    disj-concat ρ (x ∷ _) (px ∷ disj) a a∈ρ a∈ρs | ρ' , a∈ρ' , here px₁ = disj-∈ a∈x (disj-sym px) a∈ρ
       where
       a∈x : a ∈ x
-      a∈x = ∈-resp-≋ setoid px₁ a∈r'
-    disj-concat r (_ ∷ rs) (px ∷ disj) a a∈r a∈rs | r' , a∈r' , there r'∈rs =
-      disj-concat r rs disj a a∈r (∈-concat⁺′ setoid a∈r' r'∈rs)
+      a∈x = ∈-resp-≋ setoid px₁ a∈ρ'
+    disj-concat ρ (_ ∷ ρs) (px ∷ disj) a a∈ρ a∈ρs | ρ' , a∈ρ' , there ρ'∈ρs =
+      disj-concat ρ ρs disj a a∈ρ (∈-concat⁺′ setoid a∈ρ' ρ'∈ρs)
 
     disj-concat' : ∀ ρ ρs → All (Disj ρ) ρs → ∀ a → a ∈ concat ρs → a ∉ ρ
     disj-concat' r  (r₁ ∷ rs) (px ∷ rel) a a∈cs a∈r with ∈-concat⁻′ setoid (r₁ ∷ rs) a∈cs
@@ -723,13 +721,13 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     cycle-to-FP [] = Id
     cycle-to-FP (a ∷ as) = cycle-to-FP' a as
 
-    cycle'-support : ∀ a as c → c ≉ a → c ∉ as → c ∉-dom ⟦ cycle-to-FP' a as ⟧
-    cycle'-support a [] c a≉c c∉xs = refl
-    cycle'-support b (a ∷ as) c b≉c c∉xs = begin
+    cycle'-support : ∀ {a as c} → c ≉ a → c ∉ as → c ∉-dom ⟦ cycle-to-FP' a as ⟧
+    cycle'-support {as = []} a≉c c∉xs = refl
+    cycle'-support {a = b} {as = a ∷ as} {c} b≉c c∉xs = begin
       f ⟦ comp P Q ⟧ c
       ≈⟨ comp-corr P Q c ⟩
       f ⟦ Comp P Q ⟧ c
-      ≈⟨ transp-respects-≈ b a (cycle'-support a as c c≉a (∉-∷⁻ᵗ c∉xs)) ⟩
+      ≈⟨ transp-respects-≈ b a (cycle'-support c≉a (∉-∷⁻ᵗ c∉xs)) ⟩
       f ⟦ P ⟧ c
       ≈⟨ reflexive (transp-eq₃ b≉c c≉a) ⟩
       c ∎
@@ -742,7 +740,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
 
     cycle-support : ∀ as c → c ∉ as → c ∉-dom ⟦ cycle-to-FP as ⟧
     cycle-support [] c c∉xs = refl
-    cycle-support (a ∷ as) c c∉xs = cycle'-support a as c (∉-∷⁻ (here refl) c∉xs) (∉-∷⁻ᵗ c∉xs)
+    cycle-support (a ∷ as) c c∉xs = cycle'-support (∉-∷⁻ (here refl) c∉xs) (∉-∷⁻ᵗ c∉xs)
 
     to-FP : List Cycle → FinPerm
     to-FP [] = Id
@@ -808,7 +806,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       let (ρ , c) = cycle p n a in
        ∀ b → b ∈ ρ → f⁻¹ p b ≈ a ⊎ f⁻¹ p b ∈ ρ
     ∈-cycle⁻ p ℕ.zero a a∈p b (here px) = inj₁
-      (trans (cong₂ p px) (Inverse.inverseʳ p a))
+      (trans (cong₂ p px) (inverseʳ p a))
     ∈-cycle⁻ p (suc n) a a∈p b px  with cycle p n a | inspect (cycle p n) a
     ... | ρ , aⁿ | [ eq ] with a ≟ f p aⁿ
     ... | yes _ = ih b px
@@ -825,7 +823,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       ih : f⁻¹ p b ≈ a ⊎ f⁻¹ p b ∈ ρ
       ih with ∈-++⁻ setoid ρ px
       ... | inj₂ (here ppaⁿ=paⁿ) =
-        inj₂ (∈-resp-≈ setoid (trans (sym (Inverse.inverseʳ p aⁿ)) (cong₂ p (sym ppaⁿ=paⁿ))) aⁿ∈ρ )
+        inj₂ (∈-resp-≈ setoid (trans (sym (inverseʳ p aⁿ)) (cong₂ p (sym ppaⁿ=paⁿ))) aⁿ∈ρ )
       ... | inj₁ ppaⁿ∈ρ rewrite eq₁ = ∈-cycle⁻ p n a a∈p b ppa'
           where
           ppa' : b ∈ proj₁ (cycle p n a)
@@ -880,76 +878,76 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
         paⁿ-inv rewrite eq₁ = paⁿ-inv'
         absurd : ⊥
         absurd with paⁿ-inv
-        ... | inj₁ paⁿ=a = a≠paⁿ (trans (sym paⁿ=a) (Inverse.inverseʳ p (f p aⁿ)))
-        ... | inj₂ paⁿ∈ρ = ih' (∈-resp-≈ setoid (Inverse.inverseʳ p (f p aⁿ)) paⁿ∈ρ)
+        ... | inj₁ paⁿ=a = a≠paⁿ (trans (sym paⁿ=a) (inverseʳ p (f p aⁿ)))
+        ... | inj₂ paⁿ∈ρ = ih' (∈-resp-≈ setoid (inverseʳ p (f p aⁿ)) paⁿ∈ρ)
 
     -- Good prefixes of cycles starting on a (not included in the
     -- cycle) and ending in b.
-    data _,_~_,_ (p : Perm)  : (a b : Carrier) → Cycle → Set (ℓ ⊔ ℓ') where
-      sing~ : ∀ a → f p a ≉ a → p , a ~ f p a , (f p a ∷ [])
-      ∷~ : ∀ a c ρ → f p a ≉ a → a ∉ ρ →
-           p , (f p a) ~ c , ρ →
-           p , a ~ c , (f p a ∷ ρ)
+    data _,_~_,_ (π : Perm)  : (a b : Carrier) → Cycle → Set (ℓ ⊔ ℓ') where
+      sing~ : ∀ a → f π a ≉ a → π , a ~ f π a , (f π a ∷ [])
+      ∷~ : ∀ a c ρ → f π a ≉ a → a ∉ ρ →
+           π , (f π a) ~ c , ρ →
+           π , a ~ c , (f π a ∷ ρ)
 
     -- We can concatenate two good cycles if they are disjoint.
-    ++-~ : ∀ p ρ ρ' a b c → p , a ~ c , ρ → p , c ~ b , ρ' → a ∉ ρ' → Disj ρ ρ' →
-      p , a ~ b , (ρ ++ ρ')
-    ++-~ p .(f p a ∷ []) ρ' a b .(f p a) (sing~ .a x) rel' a∉ disj = ∷~ a b ρ' x a∉ rel'
-    ++-~ p .(f p a ∷ ρ) ρ' a b c (∷~ .a .c ρ x x₁ rel) rel' a∉ disj =
+    ++-~ : ∀ π ρ ρ' a b c → π , a ~ c , ρ → π , c ~ b , ρ' → a ∉ ρ' → Disj ρ ρ' →
+      π , a ~ b , (ρ ++ ρ')
+    ++-~ π .(f π a ∷ []) ρ' a b .(f π a) (sing~ .a x) rel' a∉ disj = ∷~ a b ρ' x a∉ rel'
+    ++-~ π .(f π a ∷ ρ) ρ' a b c (∷~ .a .c ρ x x₁ rel) rel' a∉ disj =
       ∷~ a b (ρ ++ ρ') x (∉-++⁺ ρ x₁ a∉) ih
       where
-      ih : p , f p a ~ b , (ρ ++ ρ')
-      ih = ++-~ p ρ ρ' (f p a) b c rel rel' (disj-∈ (here refl) disj)
+      ih : π , f π a ~ b , (ρ ++ ρ')
+      ih = ++-~ π ρ ρ' (f π a) b c rel rel' (disj-∈ (here refl) disj)
          (disj-tl disj)
 
     -- The prefix calculated by cycle is a good prefix.
-    in~ : ∀ p a n → a ∈-dom p → let (ρ , c) = cycle p n a in p , a ~ c , ρ
-    in~ p a zero a∈dom = sing~ {p = p} a a∈dom
-    in~ p a (suc n) a∈dom with cycle p n a | inspect (cycle p n) a
-    ... | ρ , aⁿ | [ eq ] with a ≟ f p aⁿ
+    in~ : ∀ π a n → a ∈-dom π → let (ρ , c) = cycle π n a in π , a ~ c , ρ
+    in~ π a zero a∈dom = sing~ {π = π} a a∈dom
+    in~ π a (suc n) a∈dom with cycle π n a | inspect (cycle π n) a
+    ... | ρ , aⁿ | [ eq ] with a ≟ f π aⁿ
     ... | yes a=an = ih
       where
-      ih : p , a ~ aⁿ , ρ
-      ih rewrite ≡-sym (≡-cong proj₂ eq) | ≡-sym (≡-cong proj₁ eq)= in~ p a n a∈dom
-    ... | no a≠an = ++-~ p ρ (f p aⁿ ∷ []) a (f p aⁿ) aⁿ ih ih₂ a≠paⁿ
-                         (disj⁺-sing₂ ρ (f p aⁿ) paⁿ∉ρ)
+      ih : π , a ~ aⁿ , ρ
+      ih rewrite ≡-sym (≡-cong proj₂ eq) | ≡-sym (≡-cong proj₁ eq)= in~ π a n a∈dom
+    ... | no a≠an = ++-~ π ρ (f π aⁿ ∷ []) a (f π aⁿ) aⁿ ih ih₂ a≠πaⁿ
+                         (disj⁺-sing₂ ρ (f π aⁿ) πaⁿ∉ρ)
       where
-      ih : p , a ~ aⁿ , ρ
-      ih rewrite ≡-sym (≡-cong proj₂ eq) | ≡-sym (≡-cong proj₁ eq) = in~ p a n a∈dom
-      aⁿ∈p : aⁿ ∈-dom p
-      aⁿ∈p rewrite ≡-sym (≡-cong proj₂ eq) = proj₂ (∈-cycle⇒∈-dom p n a a∈dom)
-      ih₂ : p , aⁿ ~ f p aⁿ , (f p aⁿ ∷ [])
-      ih₂ = in~ p aⁿ ℕ.zero aⁿ∈p
-      a≠paⁿ : a ∉ f p aⁿ ∷ []
-      a≠paⁿ (here a=paⁿ) = contradiction a=paⁿ a≠an
-      paⁿ∉ρ : f p aⁿ ∉ ρ
-      paⁿ∉ρ rewrite ≡-sym (≡-cong proj₂ eq) | ≡-sym (≡-cong proj₁ eq) =
-        img-last-not-in-cycle p n a a∈dom
+      ih : π , a ~ aⁿ , ρ
+      ih rewrite ≡-sym (≡-cong proj₂ eq) | ≡-sym (≡-cong proj₁ eq) = in~ π a n a∈dom
+      aⁿ∈π : aⁿ ∈-dom π
+      aⁿ∈π rewrite ≡-sym (≡-cong proj₂ eq) = proj₂ (∈-cycle⇒∈-dom π n a a∈dom)
+      ih₂ : π , aⁿ ~ f π aⁿ , (f π aⁿ ∷ [])
+      ih₂ = in~ π aⁿ ℕ.zero aⁿ∈π
+      a≠πaⁿ : a ∉ f π aⁿ ∷ []
+      a≠πaⁿ (here a=πaⁿ) = contradiction a=πaⁿ a≠an
+      πaⁿ∉ρ : f π aⁿ ∉ ρ
+      πaⁿ∉ρ rewrite ≡-sym (≡-cong proj₂ eq) | ≡-sym (≡-cong proj₁ eq) =
+        img-last-not-in-cycle π n a a∈dom
 
     -- A closed and good prefix.
-    _,_~ᶜ_,_ : (p : Perm) (a b : Carrier) (ρ : Cycle) → Set (ℓ ⊔ ℓ')
-    p , a ~ᶜ b , ρ = p , a ~ b , ρ × f p b ≈ a
+    _,_~ᶜ_,_ : (π : Perm) (a b : Carrier) (ρ : Cycle) → Set (ℓ ⊔ ℓ')
+    π , a ~ᶜ b , ρ = π , a ~ b , ρ × f π b ≈ a
 
     -- The starting point doesn't belong to a good cycle.
-    ~⇒# : ∀ p {ρ a c} → p , a ~ c , ρ → a ∉ ρ
-    ~⇒# p (sing~ a x) = All¬⇒¬Any ((≉-sym x) ∷ [])
-    ~⇒# p (∷~ a c ρ x x₁ _) = All¬⇒¬Any ((≉-sym x) ∷ (¬Any⇒All¬ ρ x₁))
+    ~⇒# : ∀ π {ρ a c} → π , a ~ c , ρ → a ∉ ρ
+    ~⇒# π (sing~ a x) = All¬⇒¬Any ((≉-sym x) ∷ [])
+    ~⇒# π (∷~ a c ρ x x₁ _) = All¬⇒¬Any ((≉-sym x) ∷ (¬Any⇒All¬ ρ x₁))
 
     -- But the image of the starting point does belong to the cycle.
-    ~⇒h-closed : ∀ p ρ a c → p , a ~ c , ρ → f p a ∈ ρ
-    ~⇒h-closed p .(f p a ∷ []) a .(f p a) (sing~ .a x) = here refl
-    ~⇒h-closed p .(f p a ∷ ρ) a c (∷~ .a .c ρ x x₁ rel) = here refl
+    ~⇒h-closed : ∀ π ρ a c → π , a ~ c , ρ → f π a ∈ ρ
+    ~⇒h-closed π .(f π a ∷ []) a .(f π a) (sing~ .a x) = here refl
+    ~⇒h-closed π .(f π a ∷ ρ) a c (∷~ .a .c ρ x x₁ rel) = here refl
 
     -- A good prefix is fresh.
-    ~⇒fresh : ∀ p {ρ a c} → p , a ~ c , ρ → Fresh ρ
-    ~⇒fresh p (sing~ a x) = [] ∷ []
-    ~⇒fresh p (∷~ a c ρ x x₁ rel) = ¬Any⇒All¬ ρ (~⇒# p rel) ∷ (~⇒fresh p rel)
+    ~⇒fresh : ∀ π {ρ a c} → π , a ~ c , ρ → Fresh ρ
+    ~⇒fresh π (sing~ a x) = [] ∷ []
+    ~⇒fresh π (∷~ a c ρ x x₁ rel) = ¬Any⇒All¬ ρ (~⇒# π rel) ∷ (~⇒fresh π rel)
 
     -- From which we conclude that prefixes as computed by cycles are fresh.
-    cycle-fresh : ∀ p n a → a ∈-dom p →
-      let ρ , c = cycle p n a
+    cycle-fresh : ∀ π n a → a ∈-dom π →
+      let ρ , c = cycle π n a
       in Fresh ρ
-    cycle-fresh p n a a∈p = ~⇒fresh p (in~ p a n a∈p)
+    cycle-fresh π n a a∈π = ~⇒fresh π (in~ π a n a∈π)
 
     -- If we have a list of atoms for a permutation, we can compute a
     -- closed prefix.
@@ -984,176 +982,176 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
                  (≤-trans |ρ|≤n (≤-reflexive (≡-sym (length-fresh=card as fresh-as)))))
 
     -- The last element belongs to the cycle.
-    ~⇒last : ∀ p {ρ a c} → p , a ~ c , ρ → c ∈ ρ
-    ~⇒last p (sing~ _ _) = here refl
-    ~⇒last p (∷~ _ _ _ _ _ rel) = there (~⇒last p rel)
+    ~⇒last : ∀ π {ρ a c} → π , a ~ c , ρ → c ∈ ρ
+    ~⇒last π (sing~ _ _) = here refl
+    ~⇒last π (∷~ _ _ _ _ _ rel) = there (~⇒last π rel)
 
 
     -- If an element belongs to the init of the cycle, then its image
     -- also belongs.
-    ~⇒p-closed : ∀ p ρ a c → p , a ~ c , ρ → ∀ b → b ≉ c → b ∈ ρ → f p b ∈ ρ
-    ~⇒p-closed p .(f p a ∷ []) a .(f p a) (sing~ .a x) b b≠c (here px) = contradiction px b≠c
-    ~⇒p-closed p .(f p a ∷ ρ) a c (∷~ .a .c ρ x x₁ rel) b b≠c (here px) =
-      ∈-resp-≈ setoid (sym (cong₁ p px)) (there (~⇒h-closed p ρ (f p a) c rel))
-    ~⇒p-closed p .(f p a ∷ ρ) a c (∷~ .a .c ρ x x₁ rel) b b≠c (there b∈ρ) =
-      there (~⇒p-closed p ρ (f p a) c rel b b≠c b∈ρ)
+    ~⇒img-closed : ∀ π ρ a c → π , a ~ c , ρ → ∀ b → b ≉ c → b ∈ ρ → f π b ∈ ρ
+    ~⇒img-closed π .(f π a ∷ []) a .(f π a) (sing~ .a x) b b≠c (here πx) = contradiction πx b≠c
+    ~⇒img-closed π .(f π a ∷ ρ) a c (∷~ .a .c ρ x x₁ rel) b b≠c (here πx) =
+      ∈-resp-≈ setoid (sym (cong₁ π πx)) (there (~⇒h-closed π ρ (f π a) c rel))
+    ~⇒img-closed π .(f π a ∷ ρ) a c (∷~ .a .c ρ x x₁ rel) b b≠c (there b∈ρ) =
+      there (~⇒img-closed π ρ (f π a) c rel b b≠c b∈ρ)
 
     -- The FinPerm computed from a good cycle coincides with the
     -- permutation in all but the last element (including the
     -- starting point).
 
-    out' : ∀ p {ρ} {a} {c} → p , a ~ c , ρ → ∀ b → b ≉ c → b ∈ (a ∷ ρ) →
-      f p b ≈ f ⟦ cycle-to-FP' a ρ ⟧ b
-    out' p (sing~ a _) b b≠c (here b=a) =
-      trans (cong₁ p b=a) (sym (reflexive (transp-eq₁ (f p a) b=a)))
-    out' p (sing~ _ _) b b≠c (there (here b=a)) = contradiction b=a b≠c
-    out' p (∷~ a c ρ a≠pa a∉ρ rel) b b≠c (here b=a) = begin
-        f p b
-      ≈⟨ cong₁ p b=a ⟩
-        f p a
-      ≈⟨ sym (reflexive (transp-eq₁ (f p a) b=a)) ⟩
+    out' : ∀ π {ρ} {a} {c} → π , a ~ c , ρ → ∀ b → b ≉ c → b ∈ (a ∷ ρ) →
+      f π b ≈ f ⟦ cycle-to-FP' a ρ ⟧ b
+    out' π (sing~ a _) b b≠c (here b=a) =
+      trans (cong₁ π b=a) (sym (reflexive (transp-eq₁ (f π a) b=a)))
+    out' π (sing~ _ _) b b≠c (there (here b=a)) = contradiction b=a b≠c
+    out' π (∷~ a c ρ a≠πa a∉ρ rel) b b≠c (here b=a) = begin
+        f π b
+      ≈⟨ cong₁ π b=a ⟩
+        f π a
+      ≈⟨ sym (reflexive (transp-eq₁ (f π a) b=a)) ⟩
         f ⟦ P ⟧ b
-      ≈⟨ sym (comp-id b P Q (cycle'-support (f p a) ρ b b≉fpa (∉-resp-≈ setoid (sym b=a) a∉ρ))) ⟩
+      ≈⟨ sym (comp-id b P Q (cycle'-support b≉fπa (∉-resp-≈ setoid (sym b=a) a∉ρ))) ⟩
         f ⟦ Comp P Q ⟧ b
       ≈⟨  sym (comp-corr P Q b) ⟩
         f ⟦ comp P Q ⟧ b  ∎
       where
       open ≈-Reasoning setoid
-      b≉fpa : b ≉ f p a
-      b≉fpa = ≉-resp-≈₁ b=a (≉-sym a≠pa)
-      P = Swap a (f p a)
-      Q = cycle-to-FP' (f p a) ρ
+      b≉fπa : b ≉ f π a
+      b≉fπa = ≉-resp-≈₁ b=a (≉-sym a≠πa)
+      P = Swap a (f π a)
+      Q = cycle-to-FP' (f π a) ρ
 
-    out' p R@(∷~ a c ρ a≠pa a∉ρ rel) b b≠c (there b∈ρ') =  begin
-      f p b
+    out' π R@(∷~ a c ρ a≠πa a∉ρ rel) b b≠c (there b∈ρ') =  begin
+      f π b
       ≈⟨ ih ⟩
         f ⟦ Q ⟧ b
-      ≈⟨ sym (comp-id₂ b P Q (∉-atoms-∉ {q = P} (at-swap-∉ Qb≠a Qb≠pa))) ⟩
+      ≈⟨ sym (comp-id₂ b P Q (∉-atoms-∉ {q = P} (at-swap-∉ Qb≠a Qb≠πa))) ⟩
         f ⟦ Comp P Q ⟧ b
       ≈⟨  sym (comp-corr P Q b) ⟩
         f ⟦ comp P Q ⟧ b  ∎
       where
       open ≈-Reasoning setoid
-      P = Swap a (f p a)
-      Q = cycle-to-FP' (f p a) ρ
-      ih = out' p rel b b≠c b∈ρ'
+      P = Swap a (f π a)
+      Q = cycle-to-FP' (f π a) ρ
+      ih = out' π rel b b≠c b∈ρ'
       Qb≠a : f ⟦ Q ⟧ b ≉ a
-      Qb≠a Qb=a with ∈-++⁻ setoid (f p a ∷ []) b∈ρ'
-      ... | inj₁ (here b=pa) = contradiction (∈-resp-≈ setoid (trans (cong₁ p (sym b=pa)) b≈a) j) a∉ρ
+      Qb≠a Qb=a with ∈-++⁻ setoid (f π a ∷ []) b∈ρ'
+      ... | inj₁ (here b=πa) = contradiction (∈-resp-≈ setoid (trans (cong₁ π (sym b=πa)) b≈a) j) a∉ρ
         where
-        j : f p (f p a) ∈ ρ
-        j = ~⇒h-closed p ρ (f p a) c rel
-        b≈a : f p b ≈ a
+        j : f π (f π a) ∈ ρ
+        j = ~⇒h-closed π ρ (f π a) c rel
+        b≈a : f π b ≈ a
         b≈a = trans ih Qb=a
-      ... | inj₂ b∈ρ = contradiction (∈-resp-≈ setoid b≈a (~⇒p-closed p ρ (f p a) c rel b b≠c b∈ρ)) a∉ρ
+      ... | inj₂ b∈ρ = contradiction (∈-resp-≈ setoid b≈a (~⇒img-closed π ρ (f π a) c rel b b≠c b∈ρ)) a∉ρ
         where
-        b≈a : f p b ≈ a
+        b≈a : f π b ≈ a
         b≈a = trans ih Qb=a
-      Qb≠pa : f ⟦ Q ⟧ b ≉ f p a
-      Qb≠pa Qb=pa = contradiction (∈-resp-≈ setoid b≈a b∈ρ')
-                                  (All¬⇒¬Any ((≉-sym a≠pa) ∷ ¬Any⇒All¬ ρ a∉ρ))
+      Qb≠πa : f ⟦ Q ⟧ b ≉ f π a
+      Qb≠πa Qb=πa = contradiction (∈-resp-≈ setoid b≈a b∈ρ')
+                                  (All¬⇒¬Any ((≉-sym a≠πa) ∷ ¬Any⇒All¬ ρ a∉ρ))
         where
         b≈a : b ≈ a
-        b≈a = trans  (sym (Inverse.inverseʳ p b))
-              (trans (cong₂ p (trans ih Qb=pa))
-                     (Inverse.inverseʳ p a))
+        b≈a = trans  (sym (inverseʳ π b))
+              (trans (cong₂ π (trans ih Qb=πa))
+                     (inverseʳ π a))
 
     -- For the last element, we know that the action of the FinPerm is
     -- the starting point.
-    out-closed-last : ∀ p {ρ a c} → p , a ~ c , ρ →
+    out-closed-last : ∀ π {ρ a c} → π , a ~ c , ρ →
       a ≈ f ⟦ cycle-to-FP' a ρ ⟧ c
-    out-closed-last p (sing~ a x) = sym (transp-eq₁' a refl)
-    out-closed-last p (∷~ a c ρ x x₁ rel) = begin
+    out-closed-last π (sing~ a x) = sym (transp-eq₁' a refl)
+    out-closed-last π (∷~ a c ρ x x₁ rel) = begin
         a
       ≈⟨ sym (transp-eq₁' a refl) ⟩
-        f ⟦ P ⟧ (f p a)
+        f ⟦ P ⟧ (f π a)
       ≈⟨ cong₁ ⟦ P ⟧ ih  ⟩
         f ⟦ Comp P Q ⟧ c
       ≈⟨  sym (comp-corr P Q c) ⟩
         f ⟦ comp P Q ⟧ c  ∎
       where
       open ≈-Reasoning setoid
-      P = Swap a (f p a)
-      Q = cycle-to-FP' (f p a) ρ
-      ih : f p a ≈ f ⟦ cycle-to-FP' (f p a) ρ ⟧ c
-      ih = out-closed-last p rel
+      P = Swap a (f π a)
+      Q = cycle-to-FP' (f π a) ρ
+      ih : f π a ≈ f ⟦ cycle-to-FP' (f π a) ρ ⟧ c
+      ih = out-closed-last π rel
 
     -- The previous two lemmas allows us to deduce the correctness for
     -- closed and good prefixes.
-    out-closed : ∀ p {ρ a c} → p , a ~ᶜ c , ρ → ∀ b → b ∈ (a ∷ ρ) →
-      f p b ≈ f ⟦ cycle-to-FP' a ρ ⟧ b
-    out-closed p {ρ} {a} {c} (rel , pc=a) b b∈ρ' with b ≟ c
+    out-closed : ∀ π {ρ a c} → π , a ~ᶜ c , ρ → ∀ b → b ∈ (a ∷ ρ) →
+      f π b ≈ f ⟦ cycle-to-FP' a ρ ⟧ b
+    out-closed π {ρ} {a} {c} (rel , πc=a) b b∈ρ' with b ≟ c
     ... | yes b=c = begin
-      f p b
-      ≈⟨ cong₁ p b=c ⟩
-      f p c
-      ≈⟨ pc=a ⟩
+      f π b
+      ≈⟨ cong₁ π b=c ⟩
+      f π c
+      ≈⟨ πc=a ⟩
       a
-      ≈⟨ out-closed-last p rel ⟩
+      ≈⟨ out-closed-last π rel ⟩
       f ⟦ cycle-to-FP' a ρ ⟧ c
       ≈⟨ cong₁ ⟦ cycle-to-FP' a ρ ⟧ (sym b=c) ⟩
       f ⟦ cycle-to-FP' a ρ ⟧ b ∎
       where
       open ≈-Reasoning setoid
-    ... | no b≠c = out' p rel b b≠c b∈ρ'
+    ... | no b≠c = out' π rel b b≠c b∈ρ'
 
     out-closed-fresh : ∀ ρ a b → b ∉ (a ∷ ρ) →
       b ≈ f ⟦ cycle-to-FP' a ρ ⟧ b
-    out-closed-fresh ρ a b b∉aρ = sym (cycle'-support a ρ b
-      (λ x → contradiction (here x) b∉aρ)
-      ((λ x → contradiction (there x) b∉aρ)))
+    out-closed-fresh ρ a b b∉aρ = sym (cycle'-support (contr ∘ here) (contr ∘ there))
+      where
+      contr = flip contradiction b∉aρ
 
-    out-inv : ∀ p {ρ a c b} →
-      p , a ~ c , ρ →
+    out-inv : ∀ π {ρ a c b} →
+      π , a ~ c , ρ →
       b ∈ ρ →
-      f⁻¹ p b ∈ (a ∷ ρ)
-    out-inv p {b = b} (sing~ a x) (here px) = here (trans (cong₂ p px) (Inverse.inverseʳ p a))
-    out-inv p {b = b} (∷~ a _ _ _ _ rel) (here px) = here (trans (cong₂ p px) (Inverse.inverseʳ p a))
-    out-inv p {b = b} (∷~ _ _ _ _ _ rel) (there b∈) = there (out-inv p rel b∈)
+      f⁻¹ π b ∈ (a ∷ ρ)
+    out-inv π (sing~ a _) (here px) = here (trans (cong₂ π px) (inverseʳ π a))
+    out-inv π (∷~ a _ _ _ _ rel) (here px) = here (trans (cong₂ π px) (inverseʳ π a))
+    out-inv π (∷~ _ _ _ _ _ rel) (there b∈) = there (out-inv π rel b∈)
 
-    out-closed-inv : ∀ p {ρ a c b} →
-      p , a ~ᶜ c , ρ →
+    out-closed-inv : ∀ π {ρ a c b} →
+      π , a ~ᶜ c , ρ →
       b ∈ (a ∷ ρ) →
-      f⁻¹ p b ∈ (a ∷ ρ)
-    out-closed-inv p {r} {a} {c} {b} (rel , closed) (here px) = ∈-resp-≈ setoid c=a' (there c∈r)
+      f⁻¹ π b ∈ (a ∷ ρ)
+    out-closed-inv π {r} {a} {c} {b} (rel , closed) (here px) = ∈-resp-≈ setoid c=a' (there c∈r)
       where
       c∈r : c ∈ r
-      c∈r = ~⇒last p rel
-      c=a' : c ≈ f⁻¹ p b
+      c∈r = ~⇒last π rel
+      c=a' : c ≈ f⁻¹ π b
       c=a' = begin
           c
-        ≈⟨ sym (Inverse.inverseʳ p c)  ⟩
-          f⁻¹ p (f p c)
-        ≈⟨ cong₂ p (out-closed p (rel , closed) c (there c∈r))  ⟩
-          f⁻¹ p (f ⟦ cycle-to-FP' a r ⟧ c)
-        ≈⟨ cong₂ p (sym (out-closed-last p rel)) ⟩
-          f⁻¹ p a
-        ≈⟨ cong₂ p (sym px) ⟩
-          f⁻¹ p b  ∎
+        ≈⟨ sym (inverseʳ π c)  ⟩
+          f⁻¹ π (f π c)
+        ≈⟨ cong₂ π (out-closed π (rel , closed) c (there c∈r))  ⟩
+          f⁻¹ π (f ⟦ cycle-to-FP' a r ⟧ c)
+        ≈⟨ cong₂ π (sym (out-closed-last π rel)) ⟩
+          f⁻¹ π a
+        ≈⟨ cong₂ π (sym px) ⟩
+          f⁻¹ π b  ∎
         where
         open ≈-Reasoning setoid
-    out-closed-inv p (rel , closed) (there px) = out-inv p rel px
+    out-closed-inv π (rel , closed) (there px) = out-inv π rel px
 
-    out-closed-fresh' : ∀ p {ρ a c b} →
-      p , a ~ᶜ c , ρ →
+    out-closed-fresh' : ∀ π {ρ a c b} →
+      π , a ~ᶜ c , ρ →
       b ∉ (a ∷ ρ) →
-      f p b ∉ (a ∷ ρ)
-    out-closed-fresh' p {r} {a} {b = b} rel b∉ pb∈ = b∉ (∈-resp-≈ setoid (Inverse.inverseʳ p b) b∈ar)
+      f π b ∉ (a ∷ ρ)
+    out-closed-fresh' π {r} {a} {b = b} rel b∉ πb∈ = b∉ (∈-resp-≈ setoid (inverseʳ π b) b∈ar)
       where
-      b∈ar : f⁻¹ p (f p b) ∈ (a ∷ r)
-      b∈ar = out-closed-inv p rel pb∈
+      b∈ar : f⁻¹ π (f π b) ∈ (a ∷ r)
+      b∈ar = out-closed-inv π rel πb∈
 
-    disj-cycles : ∀ {p a a' c c' ρ ρ'} →
-           p , a ~ c , ρ →
-           p , a' ~ᶜ c' , ρ' →
-           a ∉ (a' ∷ ρ') →
-           All (_∉ (a' ∷ ρ')) (a ∷ ρ)
-    disj-cycles {p} {a = a} {a'} {.(f p a)} {c'} {.(f p a ∷ [])} {r'} (sing~ .a x) (rel' , a'=pc') a∉ =
-       (a∉ ∷ (λ x₁ → a∉ (∈-resp-≈ setoid (Inverse.inverseʳ p a)
-        (out-closed-inv p (rel' , a'=pc') x₁))) ∷ [])
-    disj-cycles {p} {a = a} {a'} {c} {c'} {.(f p a ∷ ρ)} {r'} (∷~ .a .c ρ x x₁ rel) (rel' , a'=pc') a∉ =
-      a∉ ∷ (disj-cycles rel ((rel' , a'=pc')) ((λ x₁ → a∉ (∈-resp-≈ setoid (Inverse.inverseʳ p a)
-        (out-closed-inv p (rel' , a'=pc') x₁)))))
+    disj-cycles : ∀ {π a b c d ρ ρ'} →
+           π , a ~ c , ρ →
+           π , b ~ᶜ d , ρ' →
+           a ∉ (b ∷ ρ') →
+           Disj (a ∷ ρ) (b ∷ ρ')
+    disj-cycles {π} {a = a} (sing~ .a x) (rel' , b=πd) a∉ =
+       (a∉ ∷ (λ x₁ → a∉ (∈-resp-≈ setoid (inverseʳ π a)
+        (out-closed-inv π (rel' , b=πd) x₁))) ∷ [])
+    disj-cycles {π} {a = a} (∷~ .a c ρ x x₁ rel) (rel' , b=πd) a∉ =
+      a∉ ∷ (disj-cycles rel ((rel' , b=πd)) ((λ x₁ → a∉ (∈-resp-≈ setoid (inverseʳ π a)
+        (out-closed-inv π (rel' , b=πd) x₁)))))
 
     -- Given a permutation and a list of atoms we construct the list
     -- of cycles.
@@ -1164,33 +1162,33 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     ... | no _ = to-cycles π n ls ((x ∷ proj₁ (cycle π n x)) ∷ ρs)
 
     private
-        atoms-to-cycles : ∀ p n as rs y → y ∈ concat rs → y ∈ concat (to-cycles p n as rs)
-        atoms-to-cycles p n [] rs y y∈ats = y∈ats
-        atoms-to-cycles p n (x ∷ as) rs y y∈ats with any? (x ∈?_) rs
-        ... | yes _ = atoms-to-cycles p n as rs y y∈ats
-        ... | no _ = atoms-to-cycles p n as (r' ∷ rs) y (∈-++⁺ʳ setoid r' y∈ats)
+        atoms-to-cycles : ∀ π n as rs y → y ∈ concat rs → y ∈ concat (to-cycles π n as rs)
+        atoms-to-cycles π n [] rs y y∈ats = y∈ats
+        atoms-to-cycles π n (x ∷ as) rs y y∈ats with any? (x ∈?_) rs
+        ... | yes _ = atoms-to-cycles π n as rs y y∈ats
+        ... | no _ = atoms-to-cycles π n as (r' ∷ rs) y (∈-++⁺ʳ setoid r' y∈ats)
           where
-          r' = (x ∷ proj₁ (cycle p n x))
+          r' = (x ∷ proj₁ (cycle π n x))
 
-    ∈-atoms-to-cycles : ∀ p n as rs y → y ∈ as → y ∈ concat (to-cycles p n as rs)
-    ∈-atoms-to-cycles p n (x ∷ as) rs y (here eq) with any? (x ∈?_) rs
-    ... | yes ci = atoms-to-cycles p n as rs y (∈-resp-≈ setoid (sym eq) (∈-concat⁺ setoid ci))
-    ... | no _ = atoms-to-cycles p n as ( ((x ∷ proj₁ (cycle p n x)) ∷ rs)) y
-      (∈-concat⁺ setoid {xss = (x ∷ proj₁ (cycle p n x)) ∷ rs} (here  (here eq)))
-    ∈-atoms-to-cycles p n (x ∷ as) rs y (there y∈ats) with any? (x ∈?_) rs
-    ... | yes ci = ∈-atoms-to-cycles p n as rs y y∈ats
-    ... | no _ = ∈-atoms-to-cycles p n as ( ((x ∷ proj₁ (cycle p n x)) ∷ rs)) y y∈ats
+    ∈-atoms-to-cycles : ∀ π n as rs y → y ∈ as → y ∈ concat (to-cycles π n as rs)
+    ∈-atoms-to-cycles π n (x ∷ as) rs y (here eq) with any? (x ∈?_) rs
+    ... | yes ci = atoms-to-cycles π n as rs y (∈-resp-≈ setoid (sym eq) (∈-concat⁺ setoid ci))
+    ... | no _ = atoms-to-cycles π n as ( ((x ∷ proj₁ (cycle π n x)) ∷ rs)) y
+      (∈-concat⁺ setoid {xss = (x ∷ proj₁ (cycle π n x)) ∷ rs} (here  (here eq)))
+    ∈-atoms-to-cycles π n (x ∷ as) rs y (there y∈ats) with any? (x ∈?_) rs
+    ... | yes ci = ∈-atoms-to-cycles π n as rs y y∈ats
+    ... | no _ = ∈-atoms-to-cycles π n as ( ((x ∷ proj₁ (cycle π n x)) ∷ rs)) y y∈ats
 
-    data _~*_ (p : Perm) : List Cycle → Set (ℓ ⊔ ℓ') where
-      []* : p ~* []
-      ∷* : ∀ a c ρ ρs → p ~* ρs →
-           p , a ~ᶜ c , ρ →
+    data _~*_ (π : Perm) : List Cycle → Set (ℓ ⊔ ℓ') where
+      []* : π ~* []
+      ∷* : ∀ a c ρ ρs → π ~* ρs →
+           π , a ~ᶜ c , ρ →
            All (Disj (a ∷ ρ)) ρs →
-           p ~* ((a ∷ ρ) ∷ ρs)
+           π ~* ((a ∷ ρ) ∷ ρs)
 
-    disj-cycles* : ∀ {p} {a} {c} {ρ} {ρs} →
-           p , a ~ᶜ c , ρ →
-           p ~* ρs →
+    disj-cycles* : ∀ {π} {a} {c} {ρ} {ρs} →
+           π , a ~ᶜ c , ρ →
+           π ~* ρs →
            a ∉ concat ρs →
            All (Disj (a ∷ ρ)) ρs
     disj-cycles* _ []* _ = []
@@ -1198,34 +1196,35 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       disj-cycles (proj₁ rel) x (∉-concat⁻ (((a₁ ∷ ρ₁) ∷ ρs)) a∉ (here ≋-refl)) ∷
       (disj-cycles* rel rel* (∉-concat⁻' {a} {a₁ ∷ ρ₁} ρs a∉))
 
-    in~* : ∀ p rs as a → p ~* rs → as is-supp-of p →
-      a ∈-dom p →
+    in~* : ∀ π rs as a → π ~* rs → as is-supp-of π →
+      a ∈-dom π →
       a ∉ concat rs →
-      p ~* ((a ∷ proj₁ (cycle p (length as) a)) ∷ rs)
-    in~* p rs as a rel sup a∈ a∉rs = ∷* {p = p} a c r rs rel (i , pc=a) r-disj-rs
+      π ~* ((a ∷ proj₁ (cycle π (length as) a)) ∷ rs)
+    in~* π rs as a rel sup a∈ a∉rs = ∷* {π = π} a c r rs rel (i , πc=a) r-disj-rs
       where
-      r = proj₁ (cycle p (length as) a)
-      c = proj₂ (cycle p (length as) a)
-      i = in~ p a (length as) a∈
-      pc=a : f p c ≈ a
-      pc=a = cycle-closed p as a sup a∈
-      r-disj-rs = disj-cycles* (i , pc=a) rel a∉rs
+      r = proj₁ (cycle π (length as) a)
+      c = proj₂ (cycle π (length as) a)
+      i = in~ π a (length as) a∈
+      πc=a : f π c ≈ a
+      πc=a = cycle-closed π as a sup a∈
+      r-disj-rs = disj-cycles* (i , πc=a) rel a∉rs
 
-    in~fa : ∀ p rs as bs → p ~* rs → as is-supp-of p →
-       (_∈ bs) ⊆ (_∈-dom p) →
-       p ~* to-cycles p (length as) bs rs
-    in~fa p rs as [] rel sup bs⊆as = rel
-    in~fa p rs as (x ∷ bs) rel sup bs⊆as with any? (x ∈?_) rs
-    ... | yes _ = in~fa p rs as bs rel sup (bs⊆as ∘ there)
-    ... | no x∉rs = in~fa p ((x ∷ proj₁ (cycle p (length as) x)) ∷ rs) as bs (in~* p rs as x rel sup (bs⊆as (here refl))
-      (∉-concat⁺ rs x∉rs)) sup (bs⊆as ∘ there)
+    in~fa : ∀ π rs as bs → π ~* rs → as is-supp-of π →
+       (_∈ bs) ⊆ (_∈-dom π) →
+       π ~* to-cycles π (length as) bs rs
+    in~fa π rs as [] rel sup bs⊆as = rel
+    in~fa π rs as (x ∷ bs) rel sup bs⊆as with any? (x ∈?_) rs
+    ... | yes _ = in~fa π rs as bs rel sup (bs⊆as ∘ there)
+    ... | no x∉rs = in~fa π ((x ∷ proj₁ (cycle π (length as) x)) ∷ rs) as bs
+        (in~* π rs as x rel sup (bs⊆as (here refl))
+        (∉-concat⁺ rs x∉rs)) sup (bs⊆as ∘ there)
 
-    ~*-out : ∀ p ρs → p ~* ρs → (∀ a → a ∈ concat ρs → f p a ≈ f ⟦ to-FP ρs ⟧ a)
-    ~*-out p ρs'@.((b ∷ ρ) ∷ ρs) (∷* b c ρ ρs rel x x₁) a a∈ρs with ∈-concat⁻′ setoid ρs' a∈ρs
+    ~*-out : ∀ π ρs → π ~* ρs → (∀ a → a ∈ concat ρs → f π a ≈ f ⟦ to-FP ρs ⟧ a)
+    ~*-out π ρs'@.((b ∷ ρ) ∷ ρs) (∷* b c ρ ρs rel x x₁) a a∈ρs with ∈-concat⁻′ setoid ρs' a∈ρs
     ... | ρ' , a∈ρ' , here px =
       begin
-        f p a
-      ≈⟨ out-closed p x a (∈-resp-≋ setoid px a∈ρ') ⟩
+        f π a
+      ≈⟨ out-closed π x a (∈-resp-≋ setoid px a∈ρ') ⟩
         f ⟦ P ⟧ a
       ≈⟨ sym (comp-id a P Q (toFP-support ρs a a∉c[ρs]))  ⟩
         f ⟦ Comp P Q ⟧ a
@@ -1239,10 +1238,10 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       a∉c[ρs] = disj-concat (b ∷ ρ) ρs x₁ a (∈-resp-≋ setoid px a∈ρ')
     ... | ρ' , a∈ρ' , there ρ'∈lρs' =
       begin
-        f p a
+        f π a
       ≈⟨ ih  ⟩
         f ⟦ Q ⟧ a
-      ≈⟨ sym (comp-id₂ a P Q (∉-dom-resp-≈ ⟦ P ⟧ ih pa∉domP))  ⟩
+      ≈⟨ sym (comp-id₂ a P Q (∉-dom-resp-≈ ⟦ P ⟧ ih πa∉domP))  ⟩
         f ⟦ Comp P Q ⟧ a
       ≈⟨  sym (comp-corr P Q a) ⟩
         f ⟦ comp P Q ⟧ a  ∎
@@ -1250,21 +1249,21 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       open ≈-Reasoning setoid
       P = cycle-to-FP' b ρ
       Q = to-FP ρs
-      ih = ~*-out p ρs rel a (∈-concat⁺′ setoid a∈ρ' ρ'∈lρs')
+      ih = ~*-out π ρs rel a (∈-concat⁺′ setoid a∈ρ' ρ'∈lρs')
       a∉bρ : a ∉ (b ∷ ρ)
       a∉bρ = disj-concat' (b ∷ ρ) ρs x₁ a (∈-concat⁺′ setoid a∈ρ' ρ'∈lρs')
-      pa∉bρ = out-closed-fresh' p x a∉bρ
-      pa∉domP : f p a ∉-dom ⟦ P ⟧
-      pa∉domP = cycle-support (b ∷ ρ) (f p a) pa∉bρ
+      πa∉bρ = out-closed-fresh' π x a∉bρ
+      πa∉domP : f π a ∉-dom ⟦ P ⟧
+      πa∉domP = cycle-support (b ∷ ρ) (f π a) πa∉bρ
 
-    ~*-out-fresh : ∀ p ρs → p ~* ρs → (∀ b → b ∉ concat ρs → b ≈ f ⟦ to-FP ρs ⟧ b)
-    ~*-out-fresh p .[] []* b b∉rs = refl
-    ~*-out-fresh p .((b ∷ ρ) ∷ ρs) (∷* b c ρ ρs rel x x₁) a a∉rs =
+    ~*-out-fresh : ∀ π ρs → π ~* ρs → (∀ b → b ∉ concat ρs → b ≈ f ⟦ to-FP ρs ⟧ b)
+    ~*-out-fresh π .[] []* b b∉rs = refl
+    ~*-out-fresh π .((b ∷ ρ) ∷ ρs) (∷* b c ρ ρs rel x x₁) a a∉rs =
           begin
         a
       ≈⟨ ih  ⟩
         f ⟦ Q ⟧ a
-      ≈⟨ sym (∉-dom-resp-≈ ⟦ P ⟧ ih pa∉domP)  ⟩
+      ≈⟨ sym (∉-dom-resp-≈ ⟦ P ⟧ ih πa∉domP)  ⟩
         f ⟦ Comp P Q ⟧ a
       ≈⟨  sym (comp-corr P Q a) ⟩
         f ⟦ comp P Q ⟧ a  ∎
@@ -1272,11 +1271,11 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       open ≈-Reasoning setoid
       P = cycle-to-FP' b ρ
       Q = to-FP ρs
-      ih = ~*-out-fresh p ρs rel a (∉-concat⁻' ρs a∉rs )
+      ih = ~*-out-fresh π ρs rel a (∉-concat⁻' ρs a∉rs )
       a∉bρ : a ∉ (b ∷ ρ)
       a∉bρ = ∉-concat⁻ ((b ∷ ρ) ∷ ρs) a∉rs (here ≋-refl)
-      pa∉domP : a ∉-dom ⟦ P ⟧
-      pa∉domP = sym (out-closed-fresh ρ b a a∉bρ)
+      πa∉domP : a ∉-dom ⟦ P ⟧
+      πa∉domP = sym (out-closed-fresh ρ b a a∉bρ)
 
 
     fromFP : FinPerm → List Cycle
@@ -1291,15 +1290,16 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       ats = atoms! p
       rel = in~fa ⟦ p ⟧ [] ats ats []* (fp-supp p) (dom⊇atoms! p)
       ρs = to-cycles ⟦ p ⟧ (length ats) ats []
+
+      ∈-dom⇒∈ρs : (_∈-dom ⟦ p ⟧) ⊆ (_∈ concat ρs)
+      ∈-dom⇒∈ρs {y} y∈dom = ∈-atoms-to-cycles ⟦ p ⟧ (length ats) ats [] y (proj₂ (fp-supp p) y∈dom)
+
       norm-corr : ⟦ p ⟧ ≈ₚ ⟦ norm p ⟧
       norm-corr x with x ∈? concat ρs
       ... | yes x∈at = ~*-out ⟦ p ⟧ ρs rel x x∈at
       ... | no x∉at = trans
           (¬∈-dom⇒∉-dom {⟦ p ⟧} (contraposition ∈-dom⇒∈ρs x∉at))
           (~*-out-fresh ⟦ p ⟧ ρs rel x x∉at)
-        where
-        ∈-dom⇒∈ρs : (_∈-dom ⟦ p ⟧) ⊆ (_∈ concat ρs)
-        ∈-dom⇒∈ρs {y} y∈dom = ∈-atoms-to-cycles ⟦ p ⟧ (length ats) ats [] y (proj₂ (fp-supp p) y∈dom)
 
 
 module Ex where
@@ -1313,9 +1313,6 @@ module Ex where
 
   -- norm : FinPerm → FinPerm
   -- norm π = π' -- tal que ∀n∈ℕ. π n = π' n ∧ atomos(π') = sup(π')
-  --
-  -- Propiedad: Si R(π',ρs) ... entonces Q(to-FP ρs)
-  -- Propiedad' : R(π,to-cycle π)
 
   --
   cycle₀ cycle₁ : Cycle

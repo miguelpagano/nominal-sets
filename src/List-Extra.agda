@@ -22,6 +22,7 @@ open import Data.List.Relation.Unary.Any.Properties hiding (concat⁺)
 open import Relation.Nullary
 open import Relation.Binary
 open import Relation.Binary.PropositionalEquality using (_≡_;_≢_)
+open import Relation.Unary hiding (_∈_;_∉_)
 open AnyDef.Any
 
 module Extra {c ℓ : Level} (A : Setoid c ℓ) where
@@ -34,7 +35,15 @@ module Extra {c ℓ : Level} (A : Setoid c ℓ) where
 
     ∉-concat⁺ : {v : Carrier} → ∀ xss →
         ¬ (Any (v ∈_) xss) → v ∉ concat xss
-    ∉-concat⁺ xss v∈any v∈c[xss] = v∈any (∈-concat⁻ A xss v∈c[xss]) 
+    ∉-concat⁺ xss v∈any v∈c[xss] = v∈any (∈-concat⁻ A xss v∈c[xss])
+
+  module _ where
+    open import Data.List.Relation.Unary.All
+
+    all-∈⁻ : ∀ {ℓ} {P : Pred Carrier ℓ} as → All P as → P Respects _≈_ → ∀ {a} → a ∈ as → P a
+    all-∈⁻ [] _ _ a∈ = ⊥-elim (¬Any[] a∈)
+    all-∈⁻ (b ∷ bs) (pb ∷ _) resp (here a=b) = resp (sym a=b) pb
+    all-∈⁻ (_ ∷ bs) (_ ∷ Pbs) resp (there a∈bs) = all-∈⁻ bs Pbs resp a∈bs
 
   module _ where
     import Data.List.Relation.Unary.Any.Properties as Any
