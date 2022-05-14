@@ -41,10 +41,6 @@ module Inequality {ℓ₁ ℓ₂} (A : Setoid ℓ₁ ℓ₂) where
 ∥ S ∥ =  Carrier
   where open Setoid S
 
-≡to≈ : ∀ {ℓ₁ ℓ₂} → (S : Setoid ℓ₁ ℓ₂) →
-        {x y : ∥ S ∥ } → x PE.≡ y → Setoid._≈_ S x y
-≡to≈ S PE.refl = Setoid.refl S
-
 -- Extensional Equality
 module ExtEq {ℓ₁ ℓ₂ ℓ₃ ℓ₄} {A : Setoid ℓ₁ ℓ₂} {B : Setoid ℓ₃ ℓ₄} where
   private

@@ -8,9 +8,9 @@ open import Level
 module GroupAction where
 
 open import Algebra hiding (Inverse)
-open import Data.Product
+open import Data.Product hiding (map)
 open import Data.Product.Relation.Binary.Pointwise.NonDependent
-open import Data.Sum
+open import Data.Sum hiding (map)
 open import Data.Sum.Relation.Binary.Pointwise
 open import Function
 open import Function.Construct.Composition renaming (inverse to _∘ₚ_;function to _∘ₛ_)
@@ -55,7 +55,7 @@ module G-Action (A : Setoid ℓ₁ ℓ₂) (G : Group cℓ ℓ) where
 
     field
       idₐ : ∀ x → (G.ε ∙ₐ x) ≈A x
-      ∘ₐ : ∀ g g' x → (g' ∙ₐ (g ∙ₐ x)) ≈A ((g' G.∙ g) ∙ₐ x)
+      compₐ : ∀ g g' x → (g' ∙ₐ (g ∙ₐ x)) ≈A ((g' G.∙ g) ∙ₐ x)
 
     congˡ : ∀ {g} {g'} x → g ≈G g' → (g ∙ₐ x) ≈A (g' ∙ₐ x)
     congˡ x g≈g' = Func.cong F (g≈g' , refl A)
@@ -88,25 +88,23 @@ module G-Action (A : Setoid ℓ₁ ℓ₂) (G : Group cℓ ℓ) where
 
     open ≈-Reasoning A
 
--- It is straightforward to verify $g^{ -1} \cdot (g \cdot x) = x$,
--- and the analogous one.
-    _∘ₐ_-inv-idˡ : ∀ g x → (g ′ ∙ₐ (g ∙ₐ x)) ≈A x
-    _∘ₐ_-inv-idˡ g x = begin
-      (g ′ ∙ₐ (g ∙ₐ x))
-      ≈⟨ ∘ₐ g (g ′) x  ⟩
+    act-inv-idˡ : ∀ g x → (g ′ ∙ₐ (g ∙ₐ x)) ≈A x
+    act-inv-idˡ g x = begin
+      g ′ ∙ₐ (g ∙ₐ x)
+      ≈⟨ compₐ g (g ′) x  ⟩
       ((g ′) G.∙ g) ∙ₐ x
       ≈⟨ congˡ x (G.inverseˡ g) ⟩
-      (G.ε ∙ₐ x)
+      G.ε ∙ₐ x
       ≈⟨ idₐ x ⟩
       x ∎
 
-    _∘ₐ_-inv-idʳ : ∀ g x → (g ∙ₐ (g ′ ∙ₐ x)) ≈A x
-    _∘ₐ_-inv-idʳ g x = begin
-      (g ∙ₐ (g ′ ∙ₐ x))
-      ≈⟨ ∘ₐ (g ′) g x ⟩
-      ((g  G.∙ g ′ ) ∙ₐ x)
+    act-inv-idʳ : ∀ g x → (g ∙ₐ (g ′ ∙ₐ x)) ≈A x
+    act-inv-idʳ g x = begin
+      g ∙ₐ (g ′ ∙ₐ x)
+      ≈⟨ compₐ (g ′) g x ⟩
+      (g  G.∙ g ′ ) ∙ₐ x
       ≈⟨ congˡ x (G.inverseʳ g) ⟩
-      (G.ε ∙ₐ x)
+      G.ε ∙ₐ x
       ≈⟨ idₐ x ⟩
       x ∎
 
@@ -193,7 +191,7 @@ GSet-× A B = record
       }
     ; isAction = record
       { idₐ = λ x → ∙A.idₐ (proj₁ x) , ∙B.idₐ (proj₂ x)
-      ; ∘ₐ = λ g g' x → (∙A.∘ₐ g g' (proj₁ x)) , ∙B.∘ₐ g g' (proj₂ x)
+      ; compₐ = λ g g' x → (∙A.compₐ g g' (proj₁ x)) , ∙B.compₐ g g' (proj₂ x)
       }
     }
   }
@@ -275,8 +273,8 @@ GSet-+ A B = record
      ; isAction = record
        { idₐ = λ { (inj₁ x) → inj₁ (∙A.idₐ x)
                  ; (inj₂ x) → inj₂ (∙B.idₐ x) }
-       ; ∘ₐ  = λ { g g' (inj₁ x) → inj₁ (∙A.∘ₐ g g' x)
-                 ; g g' (inj₂ x) → inj₂ (∙B.∘ₐ g g' x)  }
+       ; compₐ  = λ { g g' (inj₁ x) → inj₁ (∙A.compₐ g g' x)
+                 ; g g' (inj₂ x) → inj₂ (∙B.compₐ g g' x)  }
        }
      }
   }
@@ -347,10 +345,50 @@ open Equivariant
        }
        ; isAction = record
          { idₐ = λ _ → refl A
-         ; ∘ₐ = λ _ _ _ → refl A
+         ; compₐ = λ _ _ _ → refl A
          }
      }
   }
+
+module _ (A : G-Set {ℓ₁ = ℓ₁} {ℓ₂ = ℓ₂} G) where
+  open import Setoid-Extra
+  open Func
+  open IsAction
+  private
+    open module ∙A = Action (act A)
+    module Grp = Group G
+    _′ = Grp._⁻¹
+    ε = Grp.ε
+    _∙_ = Grp._∙_
+  open import Algebra.Properties.Group G
+  open import Data.List.Relation.Binary.Equality.Setoid (set A)
+  open import Data.List.Relation.Binary.Pointwise as PW' hiding (Pointwise;_∷_;[])
+  open import Data.List renaming (map to map[])
+
+  open ≈-Reasoning ≋-setoid
+  open module PW = Setoid ≋-setoid
+  GSet-[] : G-Set {ℓ₁ = ℓ₁} {ℓ₂ = ℓ₁ ⊔ ℓ₂} G
+  private
+    fA : Grp.Carrier → Carrier (set A) → Carrier (set A)
+    fA  g a = f ∙A.action (g , a)
+  set GSet-[] = ≋-setoid
+  f (action (act GSet-[])) (g , as) = map[] (fA g) as
+  cong (action (act GSet-[])) {g , as} {g' , bs} (g=g' , as=bs) = cong' as=bs
+    where
+    actA = ∙A.action
+    cong' : ∀ {as} {bs} → as ≋ bs → map[] (fA g) as ≋ map[] (fA g') bs
+    cong' PW'.[] = PW'.[]
+    cong' (x=y PW'.∷ as=bs) = cong actA (g=g' , x=y) PW'.∷ (cong' as=bs)
+  idₐ (isAction (act GSet-[])) xs = id-action xs
+    where
+    id-action : ∀ xs → map[] (fA ε) xs PW.≈ xs
+    id-action [] = PW.refl
+    id-action (x ∷ xs) =  ∙A.idₐ x ∷ id-action xs
+  compₐ (isAction (act GSet-[])) g g' = sym ≋-setoid ∘ comp-action
+    where
+    comp-action : ∀ xs → map[] (fA (g' ∙ g)) xs PW.≈ map[] (fA g') (map[] (fA g) xs)
+    comp-action [] = PW.refl
+    comp-action (x ∷ xs) = (sym (set A) (∙A.compₐ g g' x)) PW'.∷ (comp-action xs)
 
 -- Space of functions from A to B is a G-Set, if both are.
 module _ (AG : G-Set {ℓ₁ = ℓ₁} {ℓ₂ = ℓ₂} G) (BG : G-Set {ℓ₁ = ℓ₃} {ℓ₄} G) where
@@ -358,12 +396,12 @@ module _ (AG : G-Set {ℓ₁ = ℓ₁} {ℓ₂ = ℓ₂} G) (BG : G-Set {ℓ₁ 
   open import Setoid-Extra
   open Func
   open IsAction
-  open module ∙A = Action (act AG)
-  open module ∙B = Action (act BG)
-  open ≈-Reasoning (set BG)
-
-  module Grp = Group G
   private
+    open module ∙A = Action (act AG)
+    open module ∙B = Action (act BG)
+    open ≈-Reasoning (set BG)
+
+    module Grp = Group G
     _′ = Grp._⁻¹
     ε = Grp.ε
     _∙_ = Grp._∙_
@@ -387,11 +425,39 @@ module _ (AG : G-Set {ℓ₁ = ℓ₁} {ℓ₂ = ℓ₂} G) (BG : G-Set {ℓ₁ 
     ε ∙B.∙ₐ f H a
     ≈⟨ ∙B.idₐ (f H a) ⟩
     (f H a) ∎
-  ∘ₐ (isAction (act GSet-⇒)) g g' H a = begin
+  compₐ (isAction (act GSet-⇒)) g g' H a = begin
     (g' ∙B.∙ₐ (g ∙B.∙ₐ f H (g ′ ∙A.∙ₐ (g' ′ ∙A.∙ₐ a))))
-    ≈⟨ ∙B.∘ₐ g g' (f H (g ′ ∙A.∙ₐ (g' ′ ∙A.∙ₐ a))) ⟩
+    ≈⟨ ∙B.compₐ g g' (f H (g ′ ∙A.∙ₐ (g' ′ ∙A.∙ₐ a))) ⟩
     (g' ∙ g) ∙B.∙ₐ (f H (g ′ ∙A.∙ₐ (g' ′ ∙A.∙ₐ a)))
-    ≈⟨ ∙B.congʳ (g' ∙ g) (cong H (∙A.∘ₐ (g' ′) (g ′) a)) ⟩
+    ≈⟨ ∙B.congʳ (g' ∙ g) (cong H (∙A.compₐ (g' ′) (g ′) a)) ⟩
     (g' ∙ g) ∙B.∙ₐ f H (((g ′) ∙ (g' ′)) ∙A.∙ₐ a)
     ≈⟨ ∙B.congʳ (g' ∙ g) (cong H (∙A.congˡ a (Grp.sym (⁻¹-anti-homo-∙ g' g)))) ⟩
     (g' ∙ g) ∙B.∙ₐ f H ((g' ∙ g) ′ ∙A.∙ₐ a) ∎
+
+
+module _ (A : G-Set {ℓ₁ = ℓ₁} {ℓ₂ = ℓ₂} G) where
+  open import Setoid-Extra
+  open Func
+  open IsAction
+  private
+    open module ∙A = Action (act A)
+    actA = ∙A.action
+    module Grp = Group G
+    _′ = Grp._⁻¹
+    ε = Grp.ε
+    _∙_ = Grp._∙_
+  open import Algebra.Properties.Group G
+  open import Data.Container hiding (set)
+  open import Data.Container.Relation.Binary.Pointwise hiding (map)
+  open import Relation.Binary.PropositionalEquality
+    using (_≡_)
+  module _ {ℓs ℓp} (C : Container ℓs ℓp) where
+    GSet-C : G-Set {ℓ₁ = ℓs ⊔ ℓp ⊔ ℓ₁} {ℓ₂ = ℓs ⊔ ℓp ⊔ ℓ₂} G
+    fA : Grp.Carrier → Carrier (set A) → Carrier (set A)
+    fA  g a = f ∙A.action (g , a)
+    set GSet-C = setoid (set A) C
+    f (action (act GSet-C)) (g , as) = map (fA g) as
+    cong (action (act GSet-C)) {g , (s , f)} {g' , (s' , h)} (g=g' , (s=s' , c=c')) =
+      s=s' , (λ p → cong actA (g=g' , (c=c' p)))
+    idₐ (isAction (act GSet-C)) (s , f) = _≡_.refl , ∙A.idₐ ∘ f
+    compₐ (isAction (act GSet-C)) g g' (s , f) = _≡_.refl , ∙A.compₐ g g' ∘ f

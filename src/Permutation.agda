@@ -1297,3 +1297,20 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       ... | no x∉at = trans
           (¬∈-dom⇒∉-dom {⟦ p ⟧} (contraposition ∈-dom⇒∈ρs x∉at))
           (~*-out-fresh ⟦ p ⟧ rel x∉at)
+
+    module Thm' (p : Perm) {ats : List Carrier}
+      (is-sup : ats is-supp-of p)
+      (incl : (_∈ ats) ⊆ (_∈-dom p)) where
+
+      rel = from-atoms-~* p ats {bs = ats} []* is-sup incl
+      ρs = to-cycles p (length ats) ats []
+
+      ∈-dom⇒∈ρs : (_∈-dom p) ⊆ (_∈ concat ρs)
+      ∈-dom⇒∈ρs {y} y∈dom = ∈-atoms-to-cycles p (length ats) ats [] y (proj₂ is-sup y∈dom)
+
+      norm-corr : p ≈ₚ ⟦ to-FP ρs ⟧
+      norm-corr x with x ∈? concat ρs
+      ... | yes x∈at = ~*-out p rel x∈at
+      ... | no x∉at = trans
+          (¬∈-dom⇒∉-dom { p} (contraposition ∈-dom⇒∈ρs x∉at))
+          (~*-out-fresh p rel x∉at)

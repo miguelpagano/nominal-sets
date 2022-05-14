@@ -11,23 +11,23 @@ module List-Extra where
 open import Level
 open import Algebra using (Op₂)
 open import Data.Empty
-open import Data.Sum renaming (_⊎_ to _∨_;map to map+)
+open import Data.Sum renaming (_⊎_ to _∨_;map to map+) hiding (swap)
 open import Data.Product renaming (Σ to Σₓ;map to mapₓ)
 open import Data.List hiding (any)
 open import Data.List.Properties
-import Data.List.Membership.Setoid as Any
+import Data.List.Membership.Setoid as Mem
 open import Data.List.Membership.Setoid.Properties as AnyProp
-open import Data.List.Relation.Unary.Any as AnyDef using ()
-open import Data.List.Relation.Unary.Any.Properties hiding (concat⁺)
+open import Data.List.Relation.Unary.Any
+open import Data.List.Relation.Unary.Any.Properties hiding (concat⁺;swap)
 open import Relation.Nullary
 open import Relation.Binary
 open import Relation.Binary.PropositionalEquality using (_≡_;_≢_)
-open import Relation.Unary hiding (_∈_;_∉_)
-open AnyDef.Any
+open import Relation.Unary hiding (_∈_;_∉_;_⇒_)
+  renaming (_⊆_ to _⇒_;Decidable to Decidableᵤ)
 
 module Extra {c ℓ : Level} (A : Setoid c ℓ) where
 
-  open Any A -- renaming (_∈_ to _∈'_;_∉_ to _∉_)
+  open Mem A -- renaming (_∈_ to _∈'_;_∉_ to _∉_)
   open Setoid A
   module _ where
     open import Data.List.Relation.Unary.Any
@@ -90,9 +90,8 @@ module Extra {c ℓ : Level} (A : Setoid c ℓ) where
   ∉-∷⁻ᵗ : {a d : Carrier} {xs : List Carrier} → d ∉ (a ∷ xs) → d ∉ xs
   ∉-∷⁻ᵗ d∉∷ d∈xs = d∉∷ (there d∈xs)
 
-open import Relation.Unary renaming (Decidable to Decidableᵤ) hiding (_∈_;_∉_)
 open import Relation.Nullary
-import Data.List.Relation.Unary.Any.Properties as Any
+import Data.List.Relation.Unary.Any.Properties as Any hiding (swap)
 import Data.List.Membership.Setoid as Membership
 open Setoid using (Carrier)
 
@@ -108,3 +107,15 @@ module _ (S : Setoid c ℓ) {P : Pred (Carrier S) p}
 
   ∉-filter⁻ : ∀ {v} {xs} → v ∈ xs → v ∉ filter P? xs → ¬ (P v)
   ∉-filter⁻ {v} {xs = x ∷ xs} v∈xs v∉f[x∷xs] pv = v∉f[x∷xs] (∈-filter⁺ S P? resp v∈xs pv)
+
+module _ (S : Setoid c ℓ) where
+  open Setoid S renaming (Carrier to A)
+  open import Data.List.Relation.Binary.Subset.Setoid S
+  open import Function
+
+  []-setoid : Setoid c (c ⊔ ℓ)
+  []-setoid = record {
+      Carrier = List A
+    ; _≈_ = λ as bs → as ⊆ bs × bs ⊆ as
+    ; isEquivalence = record { refl = id , id ; sym = swap ; trans = λ x x₁ → (proj₁ x₁ ∘ proj₁ x) , ((proj₂ x ∘ proj₂ x₁)) }
+    }

@@ -44,7 +44,6 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
   open DecSetoid A-setoid
   A-carrier = Carrier
 
-
   module Act-Lemmas {X-set : G-Set {cℓ = (ℓ ⊔ ℓ') } {ℓ = ℓ ⊔ ℓ'} {ℓ₁ = ℓx} {ℓ₂ = ℓx'} 𝔸} where
 
     open G-Set X-set
@@ -73,7 +72,7 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
       proj₁ π ≈ₚ ⟦ Comp p q ⟧ →
       (π ∙ₐ x) ≈X (toPERM p ∙ₐ (toPERM q ∙ₐ x))
     comp-act π x p q eq = trans-X (congˡ {π} {toPERM (Comp p q)} x eq')
-      (sym-X (∘ₐ (toPERM q) (toPERM p) x))
+      (sym-X (compₐ (toPERM q) (toPERM p) x))
       where eq' : proj₁ π ≈ₚ proj₁ (toPERM p ∘P toPERM q)
             eq' x rewrite toPERM-eq p | toPERM-eq q = eq x
             open Setoid set renaming (trans to trans-X;sym to sym-X)
@@ -258,8 +257,47 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
     set 𝔸-set = setoid
     f (action (act 𝔸-set)) (π , a) = f (proj₁ π) a
     cong (action (act 𝔸-set)) {π , a} {π' , b} (π=π' , a=b) = trans (cong₁ (proj₁ π) a=b) (π=π' b)
-    isAction (act 𝔸-set) = record { idₐ = λ x → refl ; ∘ₐ = λ g g' x → refl }
+    isAction (act 𝔸-set) = record { idₐ = λ x → refl ; compₐ = λ g g' x → refl }
 
     𝔸-set-nominal : Nominal 𝔸-set
     sup (𝔸-set-nominal) x = [ x ]ₛ , ([ x ] , here) , λ a≠x b≠x → reflexive (transp-eq₃ (≉-sym a≠x) (≉-sym b≠x))
       where open Inequality setoid
+
+    module _ (XG : G-Set {ℓ₁ = ℓ₁} {ℓ₂ = ℓ₂} 𝔸) (BG : G-Set {ℓ₁ = ℓ₃} {ℓ₄} 𝔸) where
+
+      open import Setoid-Extra
+      open Func
+      open G-Action
+      private
+        open module ∙A = Action (act XG)
+        open module ∙B = Action (act BG)
+        open module BSetoid = Setoid (set BG)
+        open module G𝔸 = Group 𝔸
+        _′g = G𝔸._⁻¹
+        εg = G𝔸.ε
+        _∙g_ = G𝔸._∙_
+
+      open ≈-Reasoning (set BG)
+
+      open module ∙→ = Action (act (GSet-⇒ XG BG))
+      open import Algebra.Properties.Group 𝔸
+      →-nominal : Nominal (GSet-⇒ XG BG)
+      sup (→-nominal) G = ⊥ₛ , (⊥-finite , λ _ _ → ab∙G[-]=G[-] )
+        where
+        open ∙A
+        postulate
+          G-equiv : IsEquivariant (act XG) (act BG) G
+        ab∙G[-]=G[-] : ∀ {a b : A-carrier} x → f ((SWAP a b) ∙→.∙ₐ G) x  BSetoid.≈ f G x
+        ab∙G[-]=G[-] {a} {b} x = begin
+          f (ab ∙→.∙ₐ G) x
+          ≈⟨ BSetoid.refl  ⟩
+          (ab ∙B.∙ₐ f G (ab' ∙A.∙ₐ x))
+          ≈⟨ ∙B.congʳ ab (G-equiv x ab') ⟩
+          (ab ∙B.∙ₐ (ab' ∙B.∙ₐ (f G x)))
+          ≈⟨ ∙B.act-inv-idʳ ab (f G x)  ⟩
+            f G x
+          ∎
+          where
+          ab = SWAP a b
+          ab' : PERM
+          ab' = ab ′g
