@@ -72,7 +72,7 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
       proj₁ π ≈ₚ ⟦ Comp p q ⟧ →
       (π ∙ₐ x) ≈X (toPERM p ∙ₐ (toPERM q ∙ₐ x))
     comp-act π x p q eq = trans-X (congˡ {π} {toPERM (Comp p q)} x eq')
-      (sym-X (compₐ (toPERM q) (toPERM p) x))
+      (sym-X (compₐ (toPERM p) (toPERM q) x))
       where eq' : proj₁ π ≈ₚ proj₁ (toPERM p ∘P toPERM q)
             eq' x rewrite toPERM-eq p | toPERM-eq q = eq x
             open Setoid set renaming (trans to trans-X;sym to sym-X)
@@ -301,3 +301,20 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
           ab = SWAP a b
           ab' : PERM
           ab' = ab ′g
+
+    -- open import data.container
+    -- module nom-cont {ℓ₁ ℓ₂} (b : g-set {ℓ₁ = ℓ₁} {ℓ₂ = ℓ₂} 𝔸) {ℓs} (s : set ℓs)  where
+    --   open support
+    --   open import data.nat using (ℕ)
+    --   open import data.fin
+    --   open cont b (s ▷ λ _ → σ[ n ∈ ℕ ] fin n)
+    --   -- product of two nominal sets.
+    --   -- abbot et al. mention shapely types of jay; it seems that they correspond to
+    --   -- finite containers.
+    --   open nominal
+    --   c-nominal : nominal {ℓp = ℓp} b →
+    --               nominal {ℓp = {!!}} gset-c
+    --   sup (c-nominal nb) (s , f) = {!!} , {!!} , {!!}
+    --     where
+    --     supb : ∀ x → σ[ p ∈ setoidpredicate {ℓ₃ = ℓp} {!!} ] (finite p × p supports x)
+    --     supb = {!!}
