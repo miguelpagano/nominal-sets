@@ -15,6 +15,7 @@ open import Data.List.Relation.Unary.AllPairs using (AllPairs; []; _∷_)
   renaming (head to head')
 import Data.List.Membership.DecSetoid as Membership
 open import Data.List.Membership.Setoid.Properties
+import Data.List.Relation.Binary.Equality.Setoid as Equality
 open import Data.List.Relation.Unary.All
   renaming (map to mapAll; tail to tailAll; head to headAll)
 open import Data.List.Relation.Unary.All.Properties
@@ -35,12 +36,13 @@ open import Function.Construct.Identity renaming (inverse to idₚ)
   hiding (inverseʳ;inverseˡ)
 open import Function.Construct.Symmetry renaming (inverse to _⁻¹)
   hiding (inverseʳ;inverseˡ)
-open import Relation.Binary
+open import Relation.Binary hiding (Sym)
 import Relation.Binary.Reasoning.Setoid as ≈-Reasoning
 open import Relation.Binary.PropositionalEquality
   using (_≡_;≢-sym;Reveal_·_is_;[_];inspect)
   renaming(sym to ≡-sym;subst to ≡-subst;cong to ≡-cong;trans to ≡-trans)
 open import Relation.Nullary
+open import Relation.Nullary.Decidable renaming (map to map-dec)
 open import Relation.Nullary.Negation
 open import Relation.Nullary.Product
 open import Relation.Unary hiding (_∈_;_∉_)
@@ -58,7 +60,7 @@ module Symmetry-Group (A-setoid : Setoid ℓ ℓ') where
   open Setoid hiding (_≈_)
   open ≈-Reasoning A-setoid
 
-  _≈_ = Setoid._≈_ A-setoid
+  _≈A_ = Setoid._≈_ A-setoid
   isEq = isEquivalence A-setoid
 
   Perm : Set _
@@ -66,7 +68,7 @@ module Symmetry-Group (A-setoid : Setoid ℓ ℓ') where
 
 -- Two permutations are equal if they coincide in every atom.
   _≈ₚ_ : Rel Perm _
-  F ≈ₚ G = (x : Carrier A-setoid) → f F x ≈ f G x
+  F ≈ₚ G = (x : Carrier A-setoid) → f F x ≈A f G x
 
 -- The inverse of equal permutations are equal
   cong-⁻¹ : Congruent₁ _≈ₚ_ _⁻¹
@@ -89,33 +91,31 @@ module Symmetry-Group (A-setoid : Setoid ℓ ℓ') where
 
 -- Group of symmetries
 -- -------------------
-
-  Sym-A : Group (ℓ ⊔ ℓ') (ℓ ⊔ ℓ')
-  Sym-A = record
-            { Carrier = Perm
-            ; _≈_ = _≈ₚ_
-            ; _∙_ = _∘ₚ_
-            ; ε = idₚ A-setoid
-            ; _⁻¹ = _⁻¹
-            ; isGroup = record {
-                isMonoid = record {
-                  isSemigroup = record {
-                  isMagma = record {
-                    isEquivalence = record {
-                        refl = λ {F} x → cong₁ F (refl isEq)
-                      ; sym = λ F≈G → sym isEq ∘ F≈G
-                      ; trans = λ F≈G G≈H x → trans isEq (F≈G x) (G≈H x)
-                    } ;
-                    ∙-cong = λ {F} {G} {H} {K} → cong₂-≈-∘ {F} {G} {H} {K}
-                  }
-                  ; assoc = λ _ _ _ _ → refl isEq
-                  }
-                ; identity = (λ _ _ → refl isEq) , (λ _ _ → refl isEq)
-                }
-              ; inverse = proj₁ ∘ inverse , proj₂ ∘ inverse
-              ; ⁻¹-cong = λ {F} {G} → cong-⁻¹ {F} {G}
-              }
-            }
+  open Group renaming (_⁻¹ to _′)
+  Sym : Group (ℓ ⊔ ℓ') (ℓ ⊔ ℓ')
+  Carrier Sym = Perm
+  _≈_ Sym = _≈ₚ_
+  _∙_ Sym = _∘ₚ_
+  ε Sym = idₚ A-setoid
+  _′ Sym = _⁻¹
+  isGroup Sym = record {
+     isMonoid = record {
+       isSemigroup = record {
+       isMagma = record {
+         isEquivalence = record {
+             refl = λ {F} x → cong₁ F (refl isEq)
+           ; sym = λ F≈G → sym isEq ∘ F≈G
+           ; trans = λ F≈G G≈H x → trans isEq (F≈G x) (G≈H x)
+         } ;
+         ∙-cong = λ {F} {G} {H} {K} → cong₂-≈-∘ {F} {G} {H} {K}
+       }
+       ; assoc = λ _ _ _ _ → refl isEq
+       }
+     ; identity = (λ _ _ → refl isEq) , (λ _ _ → refl isEq)
+     }
+     ; inverse = proj₁ ∘ inverse , proj₂ ∘ inverse
+     ; ⁻¹-cong = λ {F} {G} → cong-⁻¹ {F} {G}
+     }
 
 -- In this module we first define the transposition of atoms,
 -- prove that it is an Permutation (a bijection) on the
@@ -126,9 +126,8 @@ module Symmetry-Group (A-setoid : Setoid ℓ ℓ') where
 -- * prove that Perm is a sub-group of Sym.
 
 module Perm (A-setoid : DecSetoid ℓ ℓ') where
-  open DecSetoid A-setoid
-  open module A-Sym = Symmetry-Group setoid hiding (_≈_) public
-  import Data.List.Relation.Binary.Equality.Setoid as Equality
+  open DecSetoid A-setoid renaming (Carrier to A)
+  open module A-Sym = Symmetry-Group setoid hiding (_≈A_)
   open Equality setoid using (≋-refl)
 
   open Inequality setoid
@@ -154,7 +153,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
 -- ------------------------------------
 
 -- Usually, $\mathit{transp}\, a\,b$ is written $(a\ b)$.
-  transp : (a b c : Carrier) → Carrier
+  transp : (a b c : A) → A
   transp a b c with does (c ≟ a)
   ... | true = b
   ... | false with does (c ≟ b)
@@ -182,7 +181,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
 
 -- This simple-minded induction principle allows for short proofs of
 -- several properties about transp.
-  transp-induction : ∀ {ℓP} (P : Carrier → Set ℓP) →
+  transp-induction : ∀ {ℓP} (P : A → Set ℓP) →
                      ∀ a b c →
                      (c ≈ a → P b) →
                      (c ≉ a → c ≈ b → P a) →
@@ -327,7 +326,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   data FinPerm : Set ℓ where
     Id : FinPerm
     Comp : (p q : FinPerm) → FinPerm
-    Swap : (a b : Carrier) → FinPerm
+    Swap : (a b : A) → FinPerm
 
   -- Given a representation of a finite permutation, we can produce
   -- a permutation; although we don't prove it should be obvious that
@@ -396,24 +395,24 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   -- TODO: define a function norm : FinPerm → FinPerm that removes
   -- redundant information and prove it correct.
 
-  _∈-dom_ : Carrier → Perm → Set ℓ'
+  _∈-dom_ : A → Perm → Set ℓ'
   a ∈-dom π = f π a ≉ a
 
-  ∈-dom? : (p : Perm) → (x : Carrier) → Dec (x ∈-dom p)
+  ∈-dom? : (p : Perm) → (x : A) → Dec (x ∈-dom p)
   ∈-dom? p x = ¬? (f p x ≟ x)
 
   -- Strict equality
-  _∉-dom!_ : Carrier → Perm → Set ℓ
+  _∉-dom!_ : A → Perm → Set ℓ
   a ∉-dom! π = f π a ≡A a
-    where _≡A_ = _≡_ {A = Carrier}
+    where _≡A_ = _≡_ {A = A}
 
-  _∉-dom_ : Carrier → Perm → Set ℓ'
+  _∉-dom_ : A → Perm → Set ℓ'
   a ∉-dom π = f π a ≈ a
 
   ¬∈-dom⇒∉-dom : {π : Perm} → (¬_ ∘ (_∈-dom π)) ⊆ (_∉-dom π)
   ¬∈-dom⇒∉-dom {π} {a} ¬a∈dom = decidable-stable (f π a ≟ a) ¬a∈dom
 
-  atoms : FinPerm → List Carrier
+  atoms : FinPerm → List A
   atoms Id = []
   atoms (Comp p q) = atoms p ++ atoms q
   atoms (Swap a b) with a ≟ b
@@ -441,10 +440,10 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       (λ x → c∉ (∈-resp-≈ setoid (sym x) (proj₁ (at-swap a b))))
     , (λ x → c∉ (∈-resp-≈ setoid (sym x) (proj₂ (at-swap a b))))
 
-  ∈-atoms? : (p : FinPerm) → (x : Carrier) → Dec (x ∈ atoms p)
+  ∈-atoms? : (p : FinPerm) → (x : A) → Dec (x ∈ atoms p)
   ∈-atoms? p x = x ∈? (atoms p)
 
-  support : FinPerm → List Carrier
+  support : FinPerm → List A
   support p = filter (∈-dom? ⟦ p ⟧) (atoms p)
 
   ∈-dom-resp-≈ : (π : Perm) → (_∈-dom π) Respects _≈_
@@ -455,7 +454,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   ∉-dom-resp-≈ : (π : Perm) → (_∉-dom π) Respects _≈_
   ∉-dom-resp-≈ π {x} {y} x≈y x∈domp  = trans (cong₁ π (sym x≈y)) (trans x∈domp x≈y)
 
-  ∈-dom⇒∈-dom-f : (π : Perm) → {a : Carrier} → (a ∈-dom π) → f π a ∈-dom π
+  ∈-dom⇒∈-dom-f : (π : Perm) → {a : A} → (a ∈-dom π) → f π a ∈-dom π
   ∈-dom⇒∈-dom-f π {a} a∈domp fa∉domp = a∈domp (perm-injective π fa∉domp)
 
   ∉-∉⁻¹ : ∀ {q a} → a ∉-dom ⟦ q ⟧ → f⁻¹ ⟦ q ⟧ a ≈ a
@@ -491,7 +490,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   ∈-sup-dec : ∀ p a → Dec (a ∈ support p)
   ∈-sup-dec p a = a ∈? (support p)
 
-  atoms! : FinPerm → List Carrier
+  atoms! : FinPerm → List A
   atoms! p = proj₁ (setify (support p))
 
   fresh-atoms! : ∀ p → Fresh (atoms! p)
@@ -508,7 +507,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   dom⊇atoms! p {a} a∈at with setify (support p)
   ... | ats , _ , _ , sub = proj₂ (∈-filter⁻ setoid (∈-dom? ⟦ p ⟧) (∈-dom-resp-≈ ⟦ p ⟧) {xs = atoms p} (sub a∈at))
 
-  _is-supp-of_ : List Carrier → Perm → Set (ℓ ⊔ ℓ')
+  _is-supp-of_ : List A → Perm → Set (ℓ ⊔ ℓ')
   xs is-supp-of π = Fresh xs × ((_∈-dom π) ⊆ (_∈ xs))
 
   fp-supp : ∀ p → atoms! p is-supp-of ⟦ p ⟧
@@ -544,6 +543,15 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   ... | yes a∈p = ⊆ₛ-∈⁻ {p} {q} p<q a∈p
   ... | no a∉p = trans (∉-support-∉ p a∉p) (sym (∉-support-∉ q (≈ₛ⇒≈-sup p q q<p a a∉p)))
 
+  ≈ₚ⇒≈ₛ : ∀ p q → ⟦ p ⟧ ≈ₚ ⟦ q ⟧ → p ⊆ₛ q
+  ≈ₚ⇒≈ₛ p q equ = eq (support p)
+    where
+    eq : ∀ xs → All (λ x → f ⟦ p ⟧ x ≈ f ⟦ q ⟧ x) xs
+    eq [] = []
+    eq (x ∷ xs) = equ x ∷ eq xs
+
+  _≟ₚ_ : ∀ p q → Dec (⟦ p ⟧ ≈ₚ ⟦ q ⟧)
+  p ≟ₚ q = map′ (≈ₛ⇒≈ₚ p q) (λ p≈q → (≈ₚ⇒≈ₛ p q p≈q) , ≈ₚ⇒≈ₛ q p (sym ∘ p≈q)) (≈ₛ-dec p q)
 
   -- This is our carrier, we use capital letters to refer to the
   -- image of ⟦_⟧ on the whole FinPerm. Notice that we could have
@@ -556,15 +564,16 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   ID = idₚ setoid , Id , λ _ → refl
 
   _⁻¹P : Op₁ PERM
-  (p , code , eq) ⁻¹P = p ⁻¹
-                    , proj₁ (code ⁻¹ᵖ)
-                    , λ x → begin
-      f⁻¹ p x
-    ≈⟨ cong-⁻¹ {p} {⟦ code ⟧} eq x ⟩
-      f⁻¹ ⟦ code ⟧ x
-    ≈⟨ proj₂ (code ⁻¹ᵖ) x ⟩
-      f ⟦ proj₁ (code ⁻¹ᵖ) ⟧ x ∎
-    where open ≈-Reasoning setoid
+  (p , code , eq) ⁻¹P = p ⁻¹  , proj₁ (code ⁻¹ᵖ) , eq'
+    where
+    open ≈-Reasoning setoid
+    eq' : (p ⁻¹) ≈ₚ ⟦ proj₁ (code ⁻¹ᵖ) ⟧
+    eq' x = begin
+        f⁻¹ p x
+      ≈⟨ cong-⁻¹ {p} {⟦ code ⟧} eq x ⟩
+        f⁻¹ ⟦ code ⟧ x
+      ≈⟨ proj₂ (code ⁻¹ᵖ) x ⟩
+        f ⟦ proj₁ (code ⁻¹ᵖ) ⟧ x ∎
 
   _∘P_ : Op₂ PERM
   (p , code , eq) ∘P (q , code' , eq') =
@@ -572,7 +581,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     , Comp code code'
     , λ x → trans (cong₁ p (eq' x)) (eq (f ⟦ code' ⟧ x))
 
-  SWAP : Carrier → Carrier → PERM
+  SWAP : A → A → PERM
   SWAP a b = ⟦ Swap a b ⟧ , Swap a b , λ x → refl
 
   toPERM : (p : FinPerm) → PERM
@@ -596,14 +605,14 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   toPERM-eq'' : ∀ (π : PERM) → proj₁ π ≈ₚ proj₁ (toPERM (proj₁ (proj₂ π)))
   toPERM-eq'' π x rewrite toPERM-eq (proj₁ (proj₂ π)) = proj₂ (proj₂ π) x
 
+  open Group renaming (_⁻¹ to _′;_≈_ to _≈G_) using (Carrier;_∙_;ε;isGroup)
   Perm-A : Group (ℓ ⊔ ℓ') (ℓ ⊔ ℓ')
-  Perm-A = record
-            { Carrier = PERM
-            ; _≈_ = _≈ₚ_ on proj₁
-            ; _∙_ = _∘P_
-            ; ε = ID
-            ; _⁻¹ = _⁻¹P
-            ; isGroup = record {
+  Carrier Perm-A = PERM
+  _≈G_ Perm-A = _≈ₚ_ on proj₁
+  _∙_ Perm-A = _∘P_
+  ε Perm-A = ID
+  _′ Perm-A = _⁻¹P
+  isGroup Perm-A = record {
                 isMonoid = record {
                   isSemigroup = record {
                   isMagma = record {
@@ -613,16 +622,15 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
                       ; trans = λ x x₁ x₂ → trans (x x₂) (x₁ x₂)
                     } ;
                     ∙-cong = λ {f} {g} {h} {k} f=g h=k →
-                      Group.∙-cong Sym-A {proj₁ h} {proj₁ k} {proj₁ f} {proj₁ g} h=k f=g
+                      Group.∙-cong Sym {proj₁ h} {proj₁ k} {proj₁ f} {proj₁ g} h=k f=g
                   }
                   ; assoc = λ _ _ _ _ → refl
                   }
                 ; identity = (λ _ _ → refl) , λ _ _ → refl
                 }
               ; inverse = inverseʳ ∘ proj₁ , inverseˡ ∘ proj₁
-              ; ⁻¹-cong = λ {f} {g} → Group.⁻¹-cong Sym-A {proj₁ f} {proj₁ g}
+              ; ⁻¹-cong = λ {f} {g} → Group.⁻¹-cong Sym {proj₁ f} {proj₁ g}
               }
-            }
 
   ⁻¹ₚ-eq : ∀ (p q : FinPerm) →  (⟦ Comp p q ⟧ ⁻¹) ≈ₚ ((⟦ p ⟧ ⁻¹) ∘ₚ (⟦ q ⟧  ⁻¹))
   ⁻¹ₚ-eq p q x = refl
@@ -630,7 +638,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   inv-eq : ∀ p x → f⁻¹ ⟦ p ⟧ x ≈ f (⟦ p ⟧ ⁻¹) x
   inv-eq p x = refl
 
-  atomsₚ : PERM → List Carrier
+  atomsₚ : PERM → List A
   atomsₚ = support ∘ proj₁ ∘ proj₂
 
   comp-id : ∀ a p q → a ∉-dom ⟦ q ⟧ → f ⟦ Comp p q ⟧ a ≈ f ⟦ p ⟧ a
@@ -653,11 +661,11 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     -- TODO: use a better representation; I tried to use Fresh lists
     -- but some proofs where difficult (or impossible).
     Cycle : Set ℓ
-    Cycle = List Carrier
+    Cycle = List A
 
     -- TODO: this can be used to ensure that cycles are disjoint.
     -- Alternatively, one can use Disjoint from the stdlib composed
-    -- with toList :: Cycle → List Carrier.
+    -- with toList :: Cycle → List A.
     Disj : Rel Cycle (ℓ ⊔ ℓ')
     Disj ρ ρ' = All (_∉ ρ') ρ
 
@@ -713,7 +721,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     comp-corr p (Comp q q₁) = λ x → refl
     comp-corr p (Swap a b) = λ x → refl
 
-    cycle-to-FP' : Carrier → Cycle → FinPerm
+    cycle-to-FP' : A → Cycle → FinPerm
     cycle-to-FP' _ [] = Id
     cycle-to-FP' a (b ∷ as) = comp (Swap a b) (cycle-to-FP' b as)
 
@@ -764,7 +772,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     -- Given a finite permutation, computes a prefix for the cycle
     -- starting at the atom a; the second component of the result
     -- is the last element.
-    cycle : Perm → ℕ → (a : Carrier) → Cycle × Carrier
+    cycle : Perm → ℕ → (a : A) → Cycle × A
     cycle p ℕ.zero a = f p a ∷  [] , f p a
     cycle p (suc n) a with cycle p n a
     ... | ρ , aⁿ with a ≟ f p aⁿ
@@ -772,7 +780,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     ... | no _ = ρ ∷ʳ f p aⁿ , f p aⁿ
 
     -- In fact, the last element belongs to the cycle.
-    last-in-cycle : (p : Perm) → (n : ℕ) → (a : Carrier) → a ∈-dom p →
+    last-in-cycle : (p : Perm) → (n : ℕ) → (a : A) → a ∈-dom p →
       let (ρ , c) = cycle p n a in
       c ∈ ρ
     last-in-cycle p ℕ.zero a a∈p = here refl
@@ -802,7 +810,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
 
     -- Every element of the cycle is the image of a previous one
     -- or the start element (which does not belong to the cycle).
-    ∈-cycle⁻ : (p : Perm) → (n : ℕ) → (a : Carrier) → a ∈-dom p →
+    ∈-cycle⁻ : (p : Perm) → (n : ℕ) → (a : A) → a ∈-dom p →
       let (ρ , c) = cycle p n a in
        ∀ b → b ∈ ρ → f⁻¹ p b ≈ a ⊎ f⁻¹ p b ∈ ρ
     ∈-cycle⁻ p ℕ.zero a a∈p b (here px) = inj₁
@@ -830,7 +838,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
           ppa' rewrite ≡-sym eq₁ = ppaⁿ∈ρ
 
     -- Every element of the cycle is in the domain of the permutation.
-    ∈-cycle⇒∈-dom : (p : Perm) → (n : ℕ) → (a : Carrier) → a ∈-dom p →
+    ∈-cycle⇒∈-dom : (p : Perm) → (n : ℕ) → (a : A) → a ∈-dom p →
       let (ρ , c) = cycle p n a
       in (∀ b → b ∈ ρ → b ∈-dom p) × c ∈-dom p
     ∈-cycle⇒∈-dom p ℕ.zero a a∈dom = (λ {b (here px) → ∈-dom-resp-≈ p (sym px) goal })  , goal
@@ -845,13 +853,13 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       where
       ih : (∀ b → b ∈ ρ → b ∈-dom p) × aⁿ ∈-dom p
       ih rewrite ≡-sym (≡-cong proj₂ eq) | ≡-sym (≡-cong proj₁ eq) = ∈-cycle⇒∈-dom p n a a∈dom
-      goal : (b : Carrier) → b ∈ (ρ ∷ʳ f p aⁿ) → b ∈-dom p
+      goal : (b : A) → b ∈ (ρ ∷ʳ f p aⁿ) → b ∈-dom p
       goal b b∈ρ' with ∈-++⁻ setoid ρ b∈ρ'
       ... | inj₁ b∈ρ = proj₁ ih b b∈ρ
       ... | inj₂ (here b=paⁿ) = ∈-dom-resp-≈ p (sym b=paⁿ) (∈-dom⇒∈-dom-f p (proj₂ ih))
 
     -- The image of the last element doesn't belong to the cycle.
-    img-last-not-in-cycle :  (p : Perm) → (n : ℕ) → (a : Carrier) → a ∈-dom p →
+    img-last-not-in-cycle :  (p : Perm) → (n : ℕ) → (a : A) → a ∈-dom p →
       let (ρ , c) = cycle p n a in f p c ∉ ρ
     img-last-not-in-cycle p ℕ.zero a a∈p (here px) = contradiction px (∈-dom⇒∈-dom-f p a∈p)
     img-last-not-in-cycle p (suc n) a a∈p with cycle p n a | inspect (cycle p n) a
@@ -883,7 +891,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
 
     -- Good prefixes of cycles starting on a (not included in the
     -- cycle) and ending in b.
-    data _,_~_,_ (π : Perm)  : (a b : Carrier) → Cycle → Set (ℓ ⊔ ℓ') where
+    data _,_~_,_ (π : Perm)  : (a b : A) → Cycle → Set (ℓ ⊔ ℓ') where
       sing~ : ∀ {a} → f π a ≉ a → π , a ~ f π a , (f π a ∷ [])
       ∷~ : ∀ {a c ρ} → f π a ≉ a → a ∉ ρ →
            π , (f π a) ~ c , ρ →
@@ -921,7 +929,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
         img-last-not-in-cycle π n a a∈dom
 
     -- A closed and good prefix.
-    _,_~ᶜ_,_ : (π : Perm) (a b : Carrier) (ρ : Cycle) → Set (ℓ ⊔ ℓ')
+    _,_~ᶜ_,_ : (π : Perm) (a b : A) (ρ : Cycle) → Set (ℓ ⊔ ℓ')
     π , a ~ᶜ b , ρ = π , a ~ b , ρ × f π b ≈ a
 
     -- The starting point doesn't belong to a good cycle.
@@ -948,8 +956,8 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     -- If we have a list of atoms for a permutation, we can compute a
     -- closed prefix.
     cycle-closed : ∀ (π : Perm)
-      (as : List Carrier)
-      (a : Carrier)
+      (as : List A)
+      (a : A)
       (sup-π : as is-supp-of π)
       (a∈sup : a ∈-dom π) →
       let ρ , aⁿ = cycle π (length as) a in f π aⁿ ≈ a
@@ -1150,7 +1158,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
 
     -- Given a permutation and a list of atoms we construct the list
     -- of cycles.
-    to-cycles : Perm → ℕ → List Carrier → List Cycle → List Cycle
+    to-cycles : Perm → ℕ → List A → List Cycle → List Cycle
     to-cycles π _ [] ρs = ρs
     to-cycles π n (x ∷ ls) ρs with any? (x ∈?_) ρs
     ... | yes _ = to-cycles π n ls ρs
@@ -1298,7 +1306,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
           (¬∈-dom⇒∉-dom {⟦ p ⟧} (contraposition ∈-dom⇒∈ρs x∉at))
           (~*-out-fresh ⟦ p ⟧ rel x∉at)
 
-    module Thm' (p : Perm) {ats : List Carrier}
+    module Thm' (p : Perm) {ats : List A}
       (is-sup : ats is-supp-of p)
       (incl : (_∈ ats) ⊆ (_∈-dom p)) where
 

@@ -65,11 +65,9 @@ module G-Action (G : Group cℓ ℓ) where
 
       private
          _≈A_ = _≈_ A
+
       _∙ₐ_ : Carrier G → Carrier A → Carrier A
       _∙ₐ_ g x = Func.f F (g , x)
---   We introduce a more conventional syntax for the action as
---   an infix operator.
-
       field
         idₐ : ∀ x → ε ∙ₐ x ≈A x
         compₐ : ∀ g' g x → g' ∙ₐ g ∙ₐ x ≈A (g' ∙ g) ∙ₐ x
@@ -85,8 +83,8 @@ module G-Action (G : Group cℓ ℓ) where
 
       open ≈-Reasoning A
 
-      act-inv-idˡ : ∀ g x → (g ′ ∙ₐ (g ∙ₐ x)) ≈A x
-      act-inv-idˡ g x = begin
+      act-inverseˡ : ∀ g x → (g ′ ∙ₐ (g ∙ₐ x)) ≈A x
+      act-inverseˡ g x = begin
         g ′ ∙ₐ (g ∙ₐ x)
         ≈⟨ compₐ (g ′) g x  ⟩
         ((g ′) G.∙ g) ∙ₐ x
@@ -95,8 +93,8 @@ module G-Action (G : Group cℓ ℓ) where
         ≈⟨ idₐ x ⟩
         x ∎
 
-      act-inv-idʳ : ∀ g x → (g ∙ₐ (g ′ ∙ₐ x)) ≈A x
-      act-inv-idʳ g x = begin
+      act-inverseʳ : ∀ g x → (g ∙ₐ (g ′ ∙ₐ x)) ≈A x
+      act-inverseʳ g x = begin
         g ∙ₐ (g ′ ∙ₐ x)
         ≈⟨ compₐ g (g ′) x ⟩
         (g  G.∙ g ′ ) ∙ₐ x
@@ -204,15 +202,15 @@ open Func
 -- Binary Product (do we need/want more?) of G-Sets.
 module _ (A : GSet G {ℓ₁ = ℓ₁} {ℓ₂ = ℓ₂}) (B : GSet G {ℓ₁ = ℓ₃} {ℓ₄}) where
   private
-    open module ∙A = GSet A
-    open module ∙B = GSet B
+    open module GA = GSet A
+    open module GB = GSet B
 
   GSet-× : GSet G {ℓ₁ = ℓ₁ ⊔ ℓ₃} {ℓ₂ = ℓ₂ ⊔ ℓ₄}
-  set GSet-×  = set A ×ₛ set B
-  f (action GSet-×) (g , (a , b)) = g ∙A.∙ₐ a  , g ∙B.∙ₐ b
-  cong (action GSet-×) (g=g' , (a=a' , b=b')) = Func.cong ∙A.action (g=g' , a=a') ,  Func.cong ∙B.action (g=g' , b=b')
-  idₐ (isAction (GSet-×)) (a , b) = ∙A.idₐ a , ∙B.idₐ b
-  compₐ (isAction (GSet-×)) g g' (a , b) = ∙A.compₐ g g' a , ∙B.compₐ g g' b
+  set GSet-×  = GA.set ×ₛ GB.set
+  f (action GSet-×) (g , (a , b)) = g GA.∙ₐ a  , g GB.∙ₐ b
+  cong (action GSet-×) (g=g' , (a=a' , b=b')) = Func.cong GA.action (g=g' , a=a') ,  Func.cong GB.action (g=g' , b=b')
+  idₐ (isAction (GSet-×)) (a , b) = GA.idₐ a , GB.idₐ b
+  compₐ (isAction (GSet-×)) g g' (a , b) = GA.compₐ g g' a , GB.compₐ g g' b
 
 -- Projections are equivariant
   π₁ : Equivariant G GSet-× A

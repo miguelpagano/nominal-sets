@@ -45,7 +45,7 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
   A-carrier = Carrier
   open G-Action 𝔸
   module Act-Lemmas {X-set : GSet {ℓ₁ = ℓx} {ℓ₂ = ℓx'}} where
-
+    open A-Sym
     open GSet X-set
     open Inverse
     open SetoidPredicate
@@ -283,7 +283,7 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
           (ab ∙B f G (ab ′ ∙A x))
           ≈⟨ congʳ B ab (G-equiv x (ab ′)) ⟩
           (ab ∙B (ab ′ ∙B (f G x)))
-          ≈⟨ act-inv-idʳ B ab (f G x)  ⟩
+          ≈⟨ act-inverseʳ B ab (f G x)  ⟩
             f G x
           ∎
           where ab = SWAP a b
