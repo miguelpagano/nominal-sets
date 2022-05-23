@@ -128,15 +128,15 @@ module _ {ℓ₁ ℓ₂ ℓ₃ ℓ₄} {S : Setoid ℓ₁ ℓ₂} (P : SetoidPre
 
   _∪ₛ_ : SetoidPredicate {ℓ₃ = ℓ₃ ⊔ ℓ₄} S
   _∪ₛ_  = record {
-                               predicate = predicate P ∪ predicate Q
-                             ; predWellDef = ∪-WellDef {S = S} (predWellDef P)  (predWellDef Q)
-                             }
+           predicate = predicate P ∪ predicate Q
+         ; predWellDef = ∪-WellDef {S = S} (predWellDef P)  (predWellDef Q)
+         }
 
   _∩ₛ_ : SetoidPredicate {ℓ₃ = ℓ₃ ⊔ ℓ₄} S
   _∩ₛ_  = record {
-                               predicate = predicate P ∩ predicate Q
-                             ; predWellDef = ∩-WellDef {S = S} (predWellDef P)  (predWellDef Q)
-                             }
+            predicate = predicate P ∩ predicate Q
+          ; predWellDef = ∩-WellDef {S = S} (predWellDef P)  (predWellDef Q)
+          }
 
   ∉-∪ₛ⁻ˡ : ∀ {a} → a ∉ₛ _∪ₛ_ → a ∉ₛ P
   ∉-∪ₛ⁻ˡ a∉∪ a∈P = a∉∪ (inj₁ a∈P)
@@ -198,3 +198,25 @@ module _ {ℓ₁ ℓ₂ ℓ₃ ℓ₄ ℓ₅ ℓ₆} {S : Setoid ℓ₁ ℓ₂} 
   predicate _×ₚₛ_ (a , b) = a ∈ₛ P × b ∈ₛ Q
   predWellDef _×ₚₛ_ eq (pa , qb) = predWellDef P (proj₁ eq) pa ,
                                    predWellDef Q (proj₂ eq) qb
+
+module Orthogonality where
+  private
+    variable
+      ℓA ℓEqA ℓB ℓEqB ℓRel : Level
+      A : Setoid ℓA ℓEqA
+      B : Setoid ℓB ℓEqB
+      R : REL ∥ A ∥  ∥ B ∥ ℓRel
+
+  {- A binary relation over a setoid should be even with respect to the equality -}
+  WellDefREL : REL ∥ A ∥ ∥ B ∥ ℓRel → Set _
+  WellDefREL {A = A} {B = B} R₁ = ∀ {x y w z} → x ≈A y → w ≈B z → R₁ x w → R₁ y z
+    where
+    _≈A_ = _≈_ A
+    _≈B_ = _≈_ B
+
+  _ᵗ_ : ∀ {ℓ₃} (A₁ : SetoidPredicate {ℓ₃ = ℓ₃} A) → WellDefREL {A = A} {B = B} R → SetoidPredicate B
+  _ᵗ_ {A = A} {B = B} {R = R} A₁ Rr = record
+    { predicate = λ b → ∀ {a : ∥ A ∥} → a ∈ₛ A₁ → R a b
+    ; predWellDef = λ {x} {y} x=y A⇒R {a} a∈A₁ → Rr (reflA {x = a}) x=y (A⇒R a∈A₁)
+    }
+    where reflA = refl A

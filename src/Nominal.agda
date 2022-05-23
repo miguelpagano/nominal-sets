@@ -43,11 +43,10 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
 
   open DecSetoid A-setoid
   A-carrier = Carrier
+  open G-Action 𝔸
+  module Act-Lemmas {X-set : GSet {ℓ₁ = ℓx} {ℓ₂ = ℓx'}} where
 
-  module Act-Lemmas {X-set : G-Set {cℓ = (ℓ ⊔ ℓ') } {ℓ = ℓ ⊔ ℓ'} {ℓ₁ = ℓx} {ℓ₂ = ℓx'} 𝔸} where
-
-    open G-Set X-set
-    open G-Action.Action act
+    open GSet X-set
     open Inverse
     open SetoidPredicate
     open Func
@@ -79,22 +78,21 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
 
 
   module Support {ℓx ℓx' : Level}
-    {X-set : G-Set {cℓ = (ℓ ⊔ ℓ') } {ℓ = ℓ ⊔ ℓ'} {ℓ₁ = ℓx} {ℓ₂ = ℓx'} 𝔸}
+    {X-set : GSet {ℓ₁ = ℓx} {ℓ₂ = ℓx'}}
     (P : SetoidPredicate {ℓ₃ = ℓP} setoid)
     where
 
-    open G-Set X-set
-    open G-Action.Action act
     open Inverse
     open SetoidPredicate
     open Func
 
     private
+      open GSet X-set
       _≈X_ = Setoid._≈_ set
       X = Setoid.Carrier set
 
     -- The subset (defined by the predicate) P is a support for x (an
-    -- element of the (carrier) of the G-Set if for every finite
+    -- element of the (carrier) of the GSet if for every finite
     -- permutation that fixes every element in P acts as the identity
     -- on x. This is (2.1) in Pitts' book.
 
@@ -205,10 +203,10 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
       inclusion {x = x} (inj₁ x∈P) = ∈-++⁺ˡ setoid (P⊆xs x∈P)
       inclusion {x = x} (inj₂ x∈Q) = ∈-++⁺ʳ setoid xs (Q⊆ys x∈Q)
 
-    -- A Nominal set is a G-Set all whose elements are finitely supported.
-    record Nominal (X-set : G-Set {cℓ = (ℓ ⊔ ℓ') } {ℓ = ℓ ⊔ ℓ'} {ℓ₁ = ℓx} {ℓ₂ = ℓx'} 𝔸) :
+    -- A Nominal set is a GSet all whose elements are finitely supported.
+    record Nominal (X-set : GSet {ℓ₁ = ℓx} {ℓ₂ = ℓx'}) :
                           Set (suc ℓ ⊔ suc ℓ' ⊔ ℓx ⊔ ℓx' ⊔ suc ℓP) where
-      open G-Set X-set
+      open GSet X-set
       open Support {ℓP = ℓP} {X-set = X-set}
 
       X = Setoid.Carrier set
@@ -226,8 +224,7 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
     sup (Δ-nominal {S = S}) x = ⊥ₛ , ⊥-finite , (λ _ _ → S-refl {x = x})
       where open Setoid S renaming (refl to S-refl)
 
-    open G-Set
-    open G-Action.Action
+    open GSet
     open Func
     open Inverse
 
@@ -235,9 +232,9 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
     private
       variable
         ℓ₁ ℓ₂  ℓQ : Level
-        B : G-Set {ℓ₁ = ℓ₁} {ℓ₂ = ℓ₂} 𝔸
-        C : G-Set {ℓ₁ = ℓ₃} {ℓ₂ = ℓ₄} 𝔸
-        -- C : G-Set {ℓ₁ = ℓ₅} {ℓ₂ = ℓ₆} G
+        B : GSet {ℓ₁ = ℓ₁} {ℓ₂ = ℓ₂}
+        C : GSet {ℓ₁ = ℓ₃} {ℓ₂ = ℓ₄}
+        -- C : GSet {ℓ₁ = ℓ₅} {ℓ₂ = ℓ₆} G
 
     -- Product of two nominal sets.
     ×-nominal : Nominal {ℓP = ℓP} B →
@@ -253,68 +250,40 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
             supB = proj₂ (proj₂ Pb) ; supC = proj₂ (proj₂ Pc)
 
     -- The set of atoms is both a G-set and a nominal set.
-    𝔸-set : G-Set 𝔸
+    𝔸-set : GSet
     set 𝔸-set = setoid
-    f (action (act 𝔸-set)) (π , a) = f (proj₁ π) a
-    cong (action (act 𝔸-set)) {π , a} {π' , b} (π=π' , a=b) = trans (cong₁ (proj₁ π) a=b) (π=π' b)
-    isAction (act 𝔸-set) = record { idₐ = λ x → refl ; compₐ = λ g g' x → refl }
+    f (action 𝔸-set) (π , a) = f (proj₁ π) a
+    cong (action 𝔸-set) {π , a} {π' , b} (π=π' , a=b) = trans (cong₁ (proj₁ π) a=b) (π=π' b)
+    isAction 𝔸-set = record { idₐ = λ x → refl ; compₐ = λ g g' x → refl }
 
     𝔸-set-nominal : Nominal 𝔸-set
     sup (𝔸-set-nominal) x = [ x ]ₛ , ([ x ] , here) , λ a≠x b≠x → reflexive (transp-eq₃ (≉-sym a≠x) (≉-sym b≠x))
       where open Inequality setoid
 
-    module _ (XG : G-Set {ℓ₁ = ℓ₁} {ℓ₂ = ℓ₂} 𝔸) (BG : G-Set {ℓ₁ = ℓ₃} {ℓ₄} 𝔸) where
+    module _ (A : GSet {ℓ₁ = ℓ₁} {ℓ₂ = ℓ₂}) (B : GSet {ℓ₁ = ℓ₃} {ℓ₄}) where
 
       open import Setoid-Extra
       open Func
-      open G-Action
+      open ≈-Reasoning (set B)
+      infix 8 _∙A_ _∙B_
       private
-        open module ∙A = Action (act XG)
-        open module ∙B = Action (act BG)
-        open module BSetoid = Setoid (set BG)
-        open module G𝔸 = Group 𝔸
-        _′g = G𝔸._⁻¹
-        εg = G𝔸.ε
-        _∙g_ = G𝔸._∙_
-
-      open ≈-Reasoning (set BG)
-
-      open module ∙→ = Action (act (GSet-⇒ XG BG))
-      open import Algebra.Properties.Group 𝔸
-      →-nominal : Nominal (GSet-⇒ XG BG)
+        open module BSetoid = Setoid (set B)
+        _∙A_ = _∙ₐ_ A
+        _∙B_ = _∙ₐ_ B
+        _∙→_ = _∙ₐ_ (GSet-⇒ A B)
+      →-nominal : Nominal (GSet-⇒ A B)
       sup (→-nominal) G = ⊥ₛ , (⊥-finite , λ _ _ → ab∙G[-]=G[-] )
         where
-        open ∙A
         postulate
-          G-equiv : IsEquivariant (act XG) (act BG) G
-        ab∙G[-]=G[-] : ∀ {a b : A-carrier} x → f ((SWAP a b) ∙→.∙ₐ G) x  BSetoid.≈ f G x
+          G-equiv : IsEquivariant (action A) (action B) G
+        ab∙G[-]=G[-] : ∀ {a b : A-carrier} x → f ((SWAP a b) ∙→ G) x  BSetoid.≈ f G x
         ab∙G[-]=G[-] {a} {b} x = begin
-          f (ab ∙→.∙ₐ G) x
+          f (ab ∙→ G) x
           ≈⟨ BSetoid.refl  ⟩
-          (ab ∙B.∙ₐ f G (ab' ∙A.∙ₐ x))
-          ≈⟨ ∙B.congʳ ab (G-equiv x ab') ⟩
-          (ab ∙B.∙ₐ (ab' ∙B.∙ₐ (f G x)))
-          ≈⟨ ∙B.act-inv-idʳ ab (f G x)  ⟩
+          (ab ∙B f G (ab ′ ∙A x))
+          ≈⟨ congʳ B ab (G-equiv x (ab ′)) ⟩
+          (ab ∙B (ab ′ ∙B (f G x)))
+          ≈⟨ act-inv-idʳ B ab (f G x)  ⟩
             f G x
           ∎
-          where
-          ab = SWAP a b
-          ab' : PERM
-          ab' = ab ′g
-
-    -- open import data.container
-    -- module nom-cont {ℓ₁ ℓ₂} (b : g-set {ℓ₁ = ℓ₁} {ℓ₂ = ℓ₂} 𝔸) {ℓs} (s : set ℓs)  where
-    --   open support
-    --   open import data.nat using (ℕ)
-    --   open import data.fin
-    --   open cont b (s ▷ λ _ → σ[ n ∈ ℕ ] fin n)
-    --   -- product of two nominal sets.
-    --   -- abbot et al. mention shapely types of jay; it seems that they correspond to
-    --   -- finite containers.
-    --   open nominal
-    --   c-nominal : nominal {ℓp = ℓp} b →
-    --               nominal {ℓp = {!!}} gset-c
-    --   sup (c-nominal nb) (s , f) = {!!} , {!!} , {!!}
-    --     where
-    --     supb : ∀ x → σ[ p ∈ setoidpredicate {ℓ₃ = ℓp} {!!} ] (finite p × p supports x)
-    --     supb = {!!}
+          where ab = SWAP a b
