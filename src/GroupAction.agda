@@ -54,25 +54,24 @@ module G-Action (G : Group cℓ ℓ) where
 
   module _ {A : Setoid ℓ₁ ℓ₂} where
 
-    GFunc : Set (cℓ ⊔ ℓ ⊔ ℓ₁ ⊔ ℓ₂)
-    GFunc = Func (G.setoid ×ₛ A) A
     infixr 8 _●_
 
-    _●_ : {F : GFunc} → Carrier G → Carrier A → Carrier A
+    _●_ : {F : Func (G.setoid ×ₛ A) A} → Carrier G → Carrier A → Carrier A
     _●_ {F} g x = Func.f F (g , x)
 
-    record IsAction (F : GFunc) : Set (ℓ₁ ⊔ ℓ₂ ⊔ cℓ ⊔ ℓ) where
+    record IsAction (F : Func (G.setoid ×ₛ A) A) : Set (ℓ₁ ⊔ ℓ₂ ⊔ cℓ ⊔ ℓ) where
       infix 4 _≈A_
       infixr 8 _∙ₐ_
 
       private
          _≈A_ = _≈_ A
-      _∙ₐ_ = _●_ {F = F}
+      _∙ₐ_ : Carrier G → Carrier A → Carrier A
+      _∙ₐ_ g x = Func.f F (g , x)
 --   We introduce a more conventional syntax for the action as
 --   an infix operator.
 
       field
-        idₐ : ∀ x → G.ε ∙ₐ x ≈A x
+        idₐ : ∀ x → ε ∙ₐ x ≈A x
         compₐ : ∀ g' g x → g' ∙ₐ g ∙ₐ x ≈A (g' ∙ g) ∙ₐ x
 
       congˡ : ∀ {g} {g'} x → g ≈G g' → g ∙ₐ x ≈A g' ∙ₐ x
@@ -135,12 +134,12 @@ module G-Action (G : Group cℓ ℓ) where
   IsEquivariant :
     {A : Setoid ℓ₁ ℓ₂} →
     {B : Setoid ℓ₃ ℓ₄} →
-    (∙A : GFunc {A = A}) →
-    (∙B : GFunc {A = B}) →
-    (F : Func A B) → Set (ℓ₁ ⊔ ℓ₄ ⊔ cℓ)
-  IsEquivariant {A = A} {B = B} ∙A ∙B F = ∀ x g → F.f (g ●A x) ≈B (g ●B F.f x)
+    (FA : Func (G.setoid ×ₛ A) A) →
+    (FB : Func (G.setoid ×ₛ B) B) →
+    (H : Func A B) → Set (ℓ₁ ⊔ ℓ₄ ⊔ cℓ)
+  IsEquivariant {B = B} FA FB F = ∀ x g → F.f (g ∙A x) ≈B (g ∙B F.f x)
     where
-    _●A_ = _●_ {F = ∙A} ; _●B_ = _●_ {F = ∙B} ; _≈B_ = _≈_ B
+    _∙A_ = _●_ {F = FA} ; _∙B_ = _●_ {F = FB} ; _≈B_ = _≈_ B
     open module F = Func F
 
   record Equivariant
@@ -159,7 +158,6 @@ module G-Action (G : Group cℓ ℓ) where
     field
       F : Func (set A) (set B)
       isEquivariant : IsEquivariant (action A) (action B) F
-
 
 variable
   G : Group cℓ ℓ
@@ -218,13 +216,9 @@ module _ (A : GSet G {ℓ₁ = ℓ₁} {ℓ₂ = ℓ₂}) (B : GSet G {ℓ₁ = 
 
 -- Projections are equivariant
   π₁ : Equivariant G GSet-× A
-  π₁ = record
-    { F = record
-          { f = proj₁
-          ; cong = proj₁
-          }
-    ; isEquivariant = λ x g → refl A-setoid
-    }
+  f (F π₁) = proj₁
+  cong (F π₁) = proj₁
+  isEquivariant π₁ _ _ = refl A-setoid
     where A-setoid = set A
 
 
