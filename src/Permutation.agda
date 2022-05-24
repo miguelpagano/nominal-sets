@@ -254,7 +254,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
 
 
   transp-cancel' : ∀ a b c d → d ≉ b → d ≉ c → transp c b (transp a c d) ≈ transp a b d
-  transp-cancel' a b c d d≠b d≠c = transp-induction (λ x → transp c b (transp a c d) ≈ x) a b d
+  transp-cancel' a b c d d≠b d≠c = transp-induction (transp c b (transp a c d) ≈_) a b d
     (λ d=a → trans (transp-respects-≈ c b (reflexive (transp-eq₁ c d=a))) (reflexive (transp-eq₁ b refl)))
     (λ d≠a d=b → ⊥-elim (d≠b d=b))
     (λ d≠a d≠b → trans (transp-respects-≈ c b (reflexive (transp-eq₃ d≠a d≠c)))
@@ -263,7 +263,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   transp-cancel : ∀ a b c e → a ≉ b → a ≉ c → b ≉ c →
     transp a b e ≈ ((transp a c) ∘ (transp b c) ∘ (transp a c)) e
   transp-cancel a b c e a≠b a≠c b≠c = transp-induction
-        (λ x → x ≈ ((transp a c) ∘ (transp b c) ∘ (transp a c)) e) a b e
+        (_≈ ((transp a c) ∘ (transp b c) ∘ (transp a c)) e) a b e
         (sym ∘ eq₁)
         (λ e≠a → sym ∘ (eq₂ e≠a))
         (λ e≠a → sym ∘ (eq₃ e≠a))
@@ -349,7 +349,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
 
   transp-distributive-perm : ∀ (π : Perm) a b c →
     transp (f π a) (f π b) (f π c) ≈ f π ((transp a b) c)
-  transp-distributive-perm π a b c = transp-induction (λ x → x ≈ (f π ∘ transp a b) c) (f π a) (f π b) (f π c)
+  transp-distributive-perm π a b c = transp-induction (_≈ (f π ∘ transp a b) c) (f π a) (f π b) (f π c)
     (λ πc=πa → cong₁ π (sym (reflexive (transp-eq₁ b (perm-injective π πc=πa)))))
     (λ πc≠πa πc=πb → cong₁ π (sym (reflexive (transp-eq₂ (perm-injective' π πc≠πa) (perm-injective π πc=πb)))))
     (λ πc≠πa πc≠πb → cong₁ π (sym (reflexive (transp-eq₃ (perm-injective' π πc≠πa) (perm-injective' π πc≠πb)))))
@@ -397,8 +397,8 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   _∈-dom_ : A → Perm → Set ℓ'
   a ∈-dom π = f π a ≉ a
 
-  ∈-dom? : (p : Perm) → (x : A) → Dec (x ∈-dom p)
-  ∈-dom? p x = ¬? (f p x ≟ x)
+  _∈-dom?_ : (x : A) → (π : Perm) → Dec (x ∈-dom π)
+  x ∈-dom? π = ¬? (f π x ≟ x)
 
   -- Strict equality
   _∉-dom!_ : A → Perm → Set ℓ
@@ -424,14 +424,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   ... | no _ = here refl , there (here refl)
 
   at-comp⁻ : ∀ p q {c} → c ∈ atoms (Comp p q) → c ∈ atoms p ⊎ c ∈ atoms q
-  at-comp⁻ p q {c} c∈at = goal
-    where
-    c∈concat : c ∈ (concat (atoms p ∷ atoms q ∷ []))
-    c∈concat rewrite ++-identityʳ (atoms q) = c∈at
-    goal : c ∈ atoms p ⊎ c ∈ atoms q
-    goal with ∈-concat⁻ setoid (atoms p ∷ atoms q ∷ []) c∈concat
-    ... | here inp = inj₁ inp
-    ... | there (here inq) = inj₂ inq
+  at-comp⁻ p q {c} c∈at = ∈-++⁻ setoid (atoms p) c∈at
 
   at-swap⁻ : ∀ a b {c} → c ∈ atoms (Swap a b) → c ≈ a ⊎ c ≈ b
   at-swap⁻ a b {c} c∈at with a ≟ b
@@ -453,7 +446,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   ∈-atoms? p x = x ∈? (atoms p)
 
   support : FinPerm → List A
-  support p = filter (∈-dom? ⟦ p ⟧) (atoms p)
+  support p = filter (_∈-dom? ⟦ p ⟧) (atoms p)
 
   ∈-dom-resp-≈ : (π : Perm) → (_∈-dom π) Respects _≈_
   ∈-dom-resp-≈ π {x} {y} x≈y x∈domp y∉domp = x∈domp x∉domp
@@ -489,12 +482,12 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   ... | yes a∈atq = decidable-stable (f ⟦ q ⟧ a ≟ a) (p a∉atq)
     where
     open List-Extra
-    p = ∉-filter⁻ setoid (∈-dom? ⟦ q ⟧) (∈-dom-resp-≈ ⟦ q ⟧) {xs = atoms q} a∈atq
+    p = ∉-filter⁻ setoid (_∈-dom? ⟦ q ⟧) (∈-dom-resp-≈ ⟦ q ⟧) {xs = atoms q} a∈atq
   ... | no a∉atq = ∉-atoms-∉ {q} a∉atq
 
   ∉-∉-atoms : ∀ q {a} → a ∉-dom ⟦ q ⟧ → a ∉ support q
   ∉-∉-atoms p a∉dom a∈at = proj₂ q a∉dom
-    where q = ∈-filter⁻ setoid (∈-dom? ⟦ p ⟧) (∈-dom-resp-≈ ⟦ p ⟧) {xs = atoms p} a∈at
+    where q = ∈-filter⁻ setoid (_∈-dom? ⟦ p ⟧) (∈-dom-resp-≈ ⟦ p ⟧) {xs = atoms p} a∈at
 
   ∈-sup-dec : ∀ p a → Dec (a ∈ support p)
   ∈-sup-dec p a = a ∈? (support p)
@@ -514,7 +507,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
 
   dom⊇atoms! : ∀ p → (_∈ atoms! p) ⊆ (_∈-dom ⟦ p ⟧)
   dom⊇atoms! p {a} a∈at with setify (support p)
-  ... | ats , _ , _ , sub = proj₂ (∈-filter⁻ setoid (∈-dom? ⟦ p ⟧) (∈-dom-resp-≈ ⟦ p ⟧) {xs = atoms p} (sub a∈at))
+  ... | ats , _ , _ , sub = proj₂ (∈-filter⁻ setoid (_∈-dom? ⟦ p ⟧) (∈-dom-resp-≈ ⟦ p ⟧) {xs = atoms p} (sub a∈at))
 
   _is-supp-of_ : List A → Perm → Set (ℓ ⊔ ℓ')
   xs is-supp-of π = Fresh xs × ((_∈-dom π) ⊆ (_∈ xs))
@@ -541,7 +534,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     qx=py b=c qb=pb = trans (cong₁ ⟦ q ⟧ (sym b=c)) (trans qb=pb (cong₁ ⟦ p ⟧ b=c))
 
   ≈ₛ⇒≈-sup : ∀ p q → q ⊆ₛ p → ∀ a → (a ∉ support p → a ∉ support q)
-  ≈ₛ⇒≈-sup p q rel a a∉p a∈q with ∈-filter⁻ setoid (∈-dom? ⟦ q ⟧) (∈-dom-resp-≈ ⟦ q ⟧) {xs = atoms q} a∈q
+  ≈ₛ⇒≈-sup p q rel a a∉p a∈q with ∈-filter⁻ setoid (_∈-dom? ⟦ q ⟧) (∈-dom-resp-≈ ⟦ q ⟧) {xs = atoms q} a∈q
   ... | a∈atq , qa≉a = contradiction a∉domp (≉-resp-≈₁ (sym qa=pa) qa≉a)
     where
     a∉domp = ∉-support-∉ p a∉p
@@ -728,6 +721,12 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     comp p (Comp q q') = Comp p (Comp q q')
     comp p (Swap a b) = Comp p (Swap a b)
 
+    atoms-comp⁻ : ∀ p q {a} → a ∈ atoms (comp p q) → a ∈ atoms p ⊎ a ∈ atoms q
+    atoms-comp⁻ p Id {a} a∈ = inj₁ a∈
+    atoms-comp⁻ p q@(Comp _ _) {a} a∈ = at-comp⁻ p q a∈
+    atoms-comp⁻ p q@(Swap _ _) {a} a∈ = at-comp⁻ p q a∈
+
+
     comp-corr : ∀ p q → ⟦ comp p q ⟧ ≈ₚ ⟦ Comp p q ⟧
     comp-corr p Id =  λ x → refl
     comp-corr p (Comp q q₁) = λ x → refl
@@ -766,34 +765,19 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     cycles-to-FP [] = Id
     cycles-to-FP (ρ ∷ ρs) = comp (cycle-to-FP ρ) (cycles-to-FP ρs)
 
-    atoms-comp⁻ : ∀ p q {a} → a ∈ atoms (comp p q) → a ∈ atoms p ⊎ a ∈ atoms q
-    atoms-comp⁻ p Id {a} a∈ = inj₁ a∈
-    atoms-comp⁻ p q@(Comp _ _) {a} a∈ = at-comp⁻ p q a∈
-    atoms-comp⁻ p q@(Swap _ _) {a} a∈ = at-comp⁻ p q a∈
-
     atoms-cycle' : ∀ c ρ a → a ∈ atoms (cycle-to-FP' c ρ) → a ∈ (c ∷ ρ)
-    atoms-cycle' c (x ∷ r) a a∈ = goal
-      where
-      ih : a ∈ atoms (cycle-to-FP' x r) → a ∈ x ∷ r
-      ih a' = atoms-cycle' x r a a'
-      goal : a ∈ (c ∷ x ∷ r)
-      goal with atoms-comp⁻ (Swap c x) (cycle-to-FP' x r) a∈
-      ... | inj₂ eq' = there (ih eq')
-      ... | inj₁ eq' with at-swap⁻ c x eq'
-      ... | inj₁ ab = here ab
-      ... | inj₂ ac = there (here ac)
+    atoms-cycle' c (x ∷ r) a a∈ with atoms-comp⁻ (Swap c x) (cycle-to-FP' x r) a∈
+    ... | inj₂ eq' = there (atoms-cycle' x r a eq')
+    ... | inj₁ eq' with at-swap⁻ c x eq'
+    ... | inj₁ ab = here ab
+    ... | inj₂ ac = there (here ac)
 
     atoms-cycle-to-FP : ∀ ρ a → a ∈ atoms (cycle-to-FP ρ) → a ∈ ρ
-    atoms-cycle-to-FP (b ∷ c ∷ ρ) a a∈at = goal
-      where
-      ih : a ∈ atoms (cycle-to-FP (c ∷ ρ)) → a ∈ c ∷ ρ
-      ih a∈at = atoms-cycle' c ρ a a∈at
-      goal : a ∈ (b ∷ c ∷ ρ)
-      goal with atoms-comp⁻ (Swap b c) (cycle-to-FP' c ρ) a∈at
-      ... | inj₂ eq' = there (ih eq')
-      ... | inj₁ eq' with at-swap⁻ b c eq'
-      ... | inj₁ ab = here ab
-      ... | inj₂ ac = there (here ac)
+    atoms-cycle-to-FP (b ∷ c ∷ ρ) a a∈at with atoms-comp⁻ (Swap b c) (cycle-to-FP' c ρ) a∈at
+    ... | inj₂ eq' = there (atoms-cycle' c ρ a eq')
+    ... | inj₁ eq' with at-swap⁻ b c eq'
+    ... | inj₁ ab = here ab
+    ... | inj₂ ac = there (here ac)
 
     atoms-cycles-to-FP : ∀ ρs a → a ∈ atoms (cycles-to-FP ρs) → a ∈ concat ρs
     atoms-cycles-to-FP (ρ ∷ ρs) a a∈at with atoms-comp⁻ (cycle-to-FP ρ) (cycles-to-FP ρs) a∈at
@@ -1384,3 +1368,5 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
           (¬∈-dom⇒∉-dom { p} (contraposition ∈-dom⇒∈ρs x∉at))
           (~*-out-fresh p rel x∉at)
 
+      norm-atoms : ∀ a → a ∈ atoms (cycles-to-FP ρs) → a ∈-dom p
+      norm-atoms a a∈at = ~*-dom p rel (atoms-cycles-to-FP ρs a a∈at)
