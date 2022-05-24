@@ -1364,11 +1364,8 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
           (¬∈-dom⇒∉-dom {⟦ p ⟧} (contraposition ∈-dom⇒∈ρs x∉at))
           (~*-out-fresh ⟦ p ⟧ rel x∉at)
 
-      atoms-norm : ∀ a → a ∈ atoms (norm p) → a ∈ concat ρs
-      atoms-norm a a∈ = atoms-cycles-to-FP ρs a a∈
       norm-atoms : ∀ a → a ∈ atoms (norm p) → a ∈-dom ⟦ p ⟧
-      norm-atoms a a∈at = ~*-dom ⟦ p ⟧ rel a∈ρs
-        where a∈ρs = atoms-norm a a∈at
+      norm-atoms a a∈at = ~*-dom ⟦ p ⟧ rel (atoms-cycles-to-FP ρs a a∈at)
 
     module Thm' (p : Perm) {ats : List A}
       (is-sup : ats is-supp-of p)
