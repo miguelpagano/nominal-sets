@@ -60,11 +60,9 @@ module Symmetry-Group (A-setoid : Setoid ℓ ℓ') where
   open Setoid hiding (_≈_)
   open ≈-Reasoning A-setoid
 
-  _≈A_ = Setoid._≈_ A-setoid
   isEq = isEquivalence A-setoid
 
-  Perm : Set _
-  Perm = Inverse A-setoid A-setoid
+  Perm = Inverse A-setoid A-setoid ; _≈A_ = Setoid._≈_ A-setoid
 
 -- Two permutations are equal if they coincide in every atom.
   _≈ₚ_ : Rel Perm _
@@ -605,6 +603,9 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   toPERM-eq'' : ∀ (π : PERM) → proj₁ π ≈ₚ proj₁ (toPERM (proj₁ (proj₂ π)))
   toPERM-eq'' π x rewrite toPERM-eq (proj₁ (proj₂ π)) = proj₂ (proj₂ π) x
 
+  toPERM-eq-trans : ∀ (π : PERM) q → ⟦ proj₁ (proj₂ π) ⟧ ≈ₚ ⟦ q ⟧ → proj₁ π ≈ₚ proj₁ (toPERM q)
+  toPERM-eq-trans π q eq x rewrite toPERM-eq q = trans (proj₂ (proj₂ π) x) (eq x)
+
   open Group renaming (_⁻¹ to _′;_≈_ to _≈G_) using (Carrier;_∙_;ε;isGroup)
   Perm-A : Group (ℓ ⊔ ℓ') (ℓ ⊔ ℓ')
   Carrier Perm-A = PERM
@@ -750,11 +751,11 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     cycle-support [] c c∉xs = refl
     cycle-support (a ∷ as) c c∉xs = cycle'-support (∉-∷⁻ (here refl) c∉xs) (∉-∷⁻ᵗ c∉xs)
 
-    to-FP : List Cycle → FinPerm
-    to-FP [] = Id
-    to-FP (ρ ∷ ρs) = comp (cycle-to-FP ρ) (to-FP ρs)
+    cycles-to-FP : List Cycle → FinPerm
+    cycles-to-FP [] = Id
+    cycles-to-FP (ρ ∷ ρs) = comp (cycle-to-FP ρ) (cycles-to-FP ρs)
 
-    toFP-support : ∀ ρs c → c ∉ concat ρs → c ∉-dom ⟦ to-FP ρs ⟧
+    toFP-support : ∀ ρs c → c ∉ concat ρs → c ∉-dom ⟦ cycles-to-FP ρs ⟧
     toFP-support [] c c∉ρs = refl
     toFP-support (ρ ∷ ρs) c c∉ρs = begin
       f ⟦ comp P Q ⟧ c
@@ -767,7 +768,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       where
       open ≈-Reasoning setoid
       P = cycle-to-FP ρ
-      Q = to-FP ρs
+      Q = cycles-to-FP ρs
 
     -- Given a finite permutation, computes a prefix for the cycle
     -- starting at the atom a; the second component of the result
@@ -1224,7 +1225,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
           (cycles-~* π as x rel sup (bs⊆as (here refl))
           (∉-concat⁺ rs x∉rs)) sup (bs⊆as ∘ there)
 
-    ~*-out : ∀ π {ρs} → π ~* ρs → (∀ {a} → a ∈ concat ρs → f π a ≈ f ⟦ to-FP ρs ⟧ a)
+    ~*-out : ∀ π {ρs} → π ~* ρs → (∀ {a} → a ∈ concat ρs → f π a ≈ f ⟦ cycles-to-FP ρs ⟧ a)
     ~*-out π {ρs'@((b ∷ ρ) ∷ ρs)} (∷* rels rel disj) {a} a∈ρs with ∈-concat⁻′ setoid ρs' a∈ρs
     ... | ρ' , a∈ρ' , here ρ'=bρ =
       begin
@@ -1238,7 +1239,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       where
       open ≈-Reasoning setoid
       P = cycle-to-FP' b ρ
-      Q = to-FP ρs
+      Q = cycles-to-FP ρs
       a∉c[ρs] : a ∉ concat ρs
       a∉c[ρs] = disj-concat (b ∷ ρ) ρs disj a (∈-resp-≋ setoid ρ'=bρ a∈ρ')
     ... | ρ' , a∈ρ' , there ρ'∈lρs' =
@@ -1253,7 +1254,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       where
       open ≈-Reasoning setoid
       P = cycle-to-FP' b ρ
-      Q = to-FP ρs
+      Q = cycles-to-FP ρs
       ih = ~*-out π rels (∈-concat⁺′ setoid a∈ρ' ρ'∈lρs')
       a∉bρ : a ∉ (b ∷ ρ)
       a∉bρ = disj-concat' disj (∈-concat⁺′ setoid a∈ρ' ρ'∈lρs')
@@ -1261,7 +1262,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       πa∉domP : f π a ∉-dom ⟦ P ⟧
       πa∉domP = cycle-support (b ∷ ρ) (f π a) πa∉bρ
 
-    ~*-out-fresh : ∀ π {ρs} → π ~* ρs → (∀ {a} → a ∉ concat ρs → a ≈ f ⟦ to-FP ρs ⟧ a)
+    ~*-out-fresh : ∀ π {ρs} → π ~* ρs → (∀ {a} → a ∉ concat ρs → a ≈ f ⟦ cycles-to-FP ρs ⟧ a)
     ~*-out-fresh π []* _ = refl
     ~*-out-fresh π (∷* {b} {c} {ρ} {ρs} rel x x₁) {a} a∉rs =
           begin
@@ -1275,7 +1276,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       where
       open ≈-Reasoning setoid
       P = cycle-to-FP' b ρ
-      Q = to-FP ρs
+      Q = cycles-to-FP ρs
       ih = ~*-out-fresh π rel (∉-concat⁻' ρs a∉rs )
       a∉bρ : a ∉ (b ∷ ρ)
       a∉bρ = ∉-concat⁻ ((b ∷ ρ) ∷ ρs) a∉rs (here ≋-refl)
@@ -1283,13 +1284,13 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       πa∉domP = sym (out-closed-fresh a∉bρ)
 
 
-    fromFP : FinPerm → List Cycle
-    fromFP p = to-cycles ⟦ p ⟧ n sup []
+    cycles-from-FP : FinPerm → List Cycle
+    cycles-from-FP p = to-cycles ⟦ p ⟧ n sup []
       where sup = atoms! p
             n = length sup
 
     norm : FinPerm → FinPerm
-    norm = to-FP ∘ fromFP
+    norm = cycles-to-FP ∘ cycles-from-FP
 
     module Thm (p : FinPerm) where
       ats = atoms! p
@@ -1299,12 +1300,18 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       ∈-dom⇒∈ρs : (_∈-dom ⟦ p ⟧) ⊆ (_∈ concat ρs)
       ∈-dom⇒∈ρs {y} y∈dom = ∈-atoms-to-cycles ⟦ p ⟧ (length ats) ats [] y (proj₂ (fp-supp p) y∈dom)
 
+      -- ∈-ρs⇒∈dom : (_∈ concat ρs) ⊆ (_∈-dom ⟦ p ⟧)
+      -- ∈-ρs⇒∈dom {a} a∈ρs = {!toFP-support ρs a!}
+
       norm-corr : ⟦ p ⟧ ≈ₚ ⟦ norm p ⟧
       norm-corr x with x ∈? concat ρs
       ... | yes x∈at = ~*-out ⟦ p ⟧ rel x∈at
       ... | no x∉at = trans
           (¬∈-dom⇒∉-dom {⟦ p ⟧} (contraposition ∈-dom⇒∈ρs x∉at))
           (~*-out-fresh ⟦ p ⟧ rel x∉at)
+
+      postulate
+        norm-atoms : ∀ a → a ∈ atoms (norm p) → a ∈-dom ⟦ p ⟧
 
     module Thm' (p : Perm) {ats : List A}
       (is-sup : ats is-supp-of p)
@@ -1316,7 +1323,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       ∈-dom⇒∈ρs : (_∈-dom p) ⊆ (_∈ concat ρs)
       ∈-dom⇒∈ρs {y} y∈dom = ∈-atoms-to-cycles p (length ats) ats [] y (proj₂ is-sup y∈dom)
 
-      norm-corr : p ≈ₚ ⟦ to-FP ρs ⟧
+      norm-corr : p ≈ₚ ⟦ cycles-to-FP ρs ⟧
       norm-corr x with x ∈? concat ρs
       ... | yes x∈at = ~*-out p rel x∈at
       ... | no x∉at = trans

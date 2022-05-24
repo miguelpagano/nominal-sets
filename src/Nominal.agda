@@ -86,6 +86,7 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
     open SetoidPredicate
     open Func
 
+    infix 6 _≈X_
     private
       open GSet X-set
       _≈X_ = Setoid._≈_ set
@@ -97,14 +98,14 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
     -- on x. This is (2.1) in Pitts' book.
 
     is-supp : Pred X (ℓ ⊔ ℓ' ⊔ ℓP ⊔ ℓx')
-    is-supp x = (π : PERM) → (predicate P ⊆ _∉-dom (proj₁ π)) → (π ∙ₐ x) ≈X x
+    is-supp x = (π : PERM) → (predicate P ⊆ _∉-dom proj₁ π) → π ∙ₐ x ≈X x
 
     -- Alternatively, we can say that P supports x by using the computable
     -- notion of not being an atom in the domain of the FinPerm.
     private
       is-supp' : Pred X (ℓ ⊔ ℓ' ⊔ ℓP ⊔ ℓx')
       is-supp' x = (π : PERM) → (predicate P ⊆ (_∉ support (proj₁ (proj₂ π)))) →
-        (π ∙ₐ x) ≈X x
+        π ∙ₐ x ≈X x
 
     -- Both notions are equivalent.
       imp : is-supp ⊆ is-supp'
@@ -118,7 +119,7 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
     -- for every a and b in the complement of P, the action of (SWAP a b) in x
     -- fixes it.
     _supports_ : Pred X (ℓ ⊔ ℓP ⊔ ℓx')
-    _supports_ x = ∀ {a b : A-carrier} → (a ∉ₛ P) → b ∉ₛ P → ((SWAP a b) ∙ₐ x) ≈X x
+    _supports_ x = ∀ {a b} → a ∉ₛ P → b ∉ₛ P → SWAP a b ∙ₐ x ≈X x
 
     -- Finally we can prove that is-supp implies supports.
     private
@@ -159,10 +160,20 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
       supports⊆is-supp₃ {x} inv (Swap a b) pred =
         inv {a} {b} (λ Pa → pred Pa (proj₁ (at-swap a b))) (λ Pb → pred Pb (proj₂ (at-swap a b)))
 
-      -- Thm. 2.2 should follow from the previous one, because:
-      --  1. π ≈ toPERM (norm p) , p = proj₁ (proj₂ π)
-      --  2. atoms (norm p) ≡ support (norm p)
-      --  3. support (norm p) ≈ support p
+
+      supports⊆is-supp : _supports_ ⊆ is-supp
+      supports⊆is-supp {x} inv π pred =
+        Setoid.trans set
+          (congˡ x (toPERM-eq-trans π p-norm norm-corr)) sup⊆sup₃
+        where
+        open Setoid set
+        p = proj₁ (proj₂ π)
+        p-norm = norm p
+        open Thm p
+        sup⊆sup₃ = supports⊆is-supp₃ inv p-norm (λ {a} a∈P a∈at → norm-atoms a a∈at (a∉domp a∈P))
+          where
+          a∉domp : ∀ {a} → a ∈ₛ P  → f ⟦ p ⟧ a A-Sym.≈A a
+          a∉domp {a} a∈atP = Setoid.trans setoid (Setoid.sym setoid (proj₂ (proj₂ π) a)) (pred a∈atP)
 
   -- TODO: Thm. 2.3
 
@@ -175,7 +186,7 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
     -- into account the underlying equality).
 
     -- TODO: move this to Setoid-Extra.
-    finite : (P : SetoidPredicate {ℓ₃ = ℓP} setoid) → Set (ℓ ⊔ ℓ' ⊔ ℓP)
+    finite : Pred (SetoidPredicate {ℓ₃ = ℓP} setoid) (ℓ ⊔ ℓ' ⊔ ℓP)
     finite P = Σ[ as ∈ List Carrier ] (predicate P ⊆ (_∈ as))
 
     𝒫f : {ℓpred : Level} → Set (suc (ℓ ⊔ ℓ' ⊔ ℓpred))
@@ -209,10 +220,8 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
       open GSet X-set
       open Support {ℓP = ℓP} {X-set = X-set}
 
-      X = Setoid.Carrier set
-
       field
-        sup : (x : X) → Σ[ P ∈ SetoidPredicate {ℓ₃ = ℓP} setoid ] (finite P × P supports x)
+        sup : ∀ x → Σ[ P ∈ SetoidPredicate setoid ] (finite P × P supports x)
 
     open Nominal
 
