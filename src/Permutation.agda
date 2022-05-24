@@ -1,3 +1,4 @@
+
 -- Nominal Sets
 -- ============
 
@@ -422,6 +423,16 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   ... | yes a=b = here refl , here (sym a=b)
   ... | no _ = here refl , there (here refl)
 
+  at-comp⁻ : ∀ p q {c} → c ∈ atoms (Comp p q) → c ∈ atoms p ⊎ c ∈ atoms q
+  at-comp⁻ p q {c} c∈at = goal
+    where
+    c∈concat : c ∈ (concat (atoms p ∷ atoms q ∷ []))
+    c∈concat rewrite ++-identityʳ (atoms q) = c∈at
+    goal : c ∈ atoms p ⊎ c ∈ atoms q
+    goal with ∈-concat⁻ setoid (atoms p ∷ atoms q ∷ []) c∈concat
+    ... | here inp = inj₁ inp
+    ... | there (here inq) = inj₂ inq
+
   at-swap⁻ : ∀ a b {c} → c ∈ atoms (Swap a b) → c ≈ a ⊎ c ≈ b
   at-swap⁻ a b {c} c∈at with a ≟ b
   at-swap⁻ a b {c} (here c=a) | yes _ = inj₁ c=a
@@ -755,6 +766,40 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     cycles-to-FP [] = Id
     cycles-to-FP (ρ ∷ ρs) = comp (cycle-to-FP ρ) (cycles-to-FP ρs)
 
+    atoms-comp⁻ : ∀ p q {a} → a ∈ atoms (comp p q) → a ∈ atoms p ⊎ a ∈ atoms q
+    atoms-comp⁻ p Id {a} a∈ = inj₁ a∈
+    atoms-comp⁻ p q@(Comp _ _) {a} a∈ = at-comp⁻ p q a∈
+    atoms-comp⁻ p q@(Swap _ _) {a} a∈ = at-comp⁻ p q a∈
+
+    atoms-cycle' : ∀ c ρ a → a ∈ atoms (cycle-to-FP' c ρ) → a ∈ (c ∷ ρ)
+    atoms-cycle' c (x ∷ r) a a∈ = goal
+      where
+      ih : a ∈ atoms (cycle-to-FP' x r) → a ∈ x ∷ r
+      ih a' = atoms-cycle' x r a a'
+      goal : a ∈ (c ∷ x ∷ r)
+      goal with atoms-comp⁻ (Swap c x) (cycle-to-FP' x r) a∈
+      ... | inj₂ eq' = there (ih eq')
+      ... | inj₁ eq' with at-swap⁻ c x eq'
+      ... | inj₁ ab = here ab
+      ... | inj₂ ac = there (here ac)
+
+    atoms-cycle-to-FP : ∀ ρ a → a ∈ atoms (cycle-to-FP ρ) → a ∈ ρ
+    atoms-cycle-to-FP (b ∷ c ∷ ρ) a a∈at = goal
+      where
+      ih : a ∈ atoms (cycle-to-FP (c ∷ ρ)) → a ∈ c ∷ ρ
+      ih a∈at = atoms-cycle' c ρ a a∈at
+      goal : a ∈ (b ∷ c ∷ ρ)
+      goal with atoms-comp⁻ (Swap b c) (cycle-to-FP' c ρ) a∈at
+      ... | inj₂ eq' = there (ih eq')
+      ... | inj₁ eq' with at-swap⁻ b c eq'
+      ... | inj₁ ab = here ab
+      ... | inj₂ ac = there (here ac)
+
+    atoms-cycles-to-FP : ∀ ρs a → a ∈ atoms (cycles-to-FP ρs) → a ∈ concat ρs
+    atoms-cycles-to-FP (ρ ∷ ρs) a a∈at with atoms-comp⁻ (cycle-to-FP ρ) (cycles-to-FP ρs) a∈at
+    ... | inj₂ eq' = ∈-++⁺ʳ setoid ρ (atoms-cycles-to-FP ρs a eq')
+    ... | inj₁ eq' = ∈-++⁺ˡ setoid (atoms-cycle-to-FP ρ a eq')
+
     toFP-support : ∀ ρs c → c ∉ concat ρs → c ∉-dom ⟦ cycles-to-FP ρs ⟧
     toFP-support [] c c∉ρs = refl
     toFP-support (ρ ∷ ρs) c c∉ρs = begin
@@ -1001,6 +1046,13 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     ~⇒img-closed π (∷~ _ _ rel) b≠c (there b∈ρ) =
       there (~⇒img-closed π rel b≠c b∈ρ)
 
+    ~⇒in-dom : ∀ π {ρ a c} → π , a ~ c , ρ → ∀ {b} → b ∈ (a ∷ ρ) → b ∈-dom π
+    ~⇒in-dom π (sing~ x) (here px) = ∈-dom-resp-≈ π (sym px) x
+    ~⇒in-dom π (sing~ x) (there (here px)) = ∈-dom-resp-≈ π (sym px) (∈-dom⇒∈-dom-f π x)
+    ~⇒in-dom π (∷~ x x₁ rel) (here px) = ∈-dom-resp-≈ π (sym px) x
+    ~⇒in-dom π (∷~ x x₁ rel) (there (here px)) = ∈-dom-resp-≈ π (sym px) (∈-dom⇒∈-dom-f π x)
+    ~⇒in-dom π (∷~ x x₁ rel) (there (there b∈ρ)) = ~⇒in-dom π rel (there b∈ρ)
+
     -- The FinPerm computed from a good cycle coincides with the
     -- permutation in all but the last element (including the
     -- starting point).
@@ -1225,6 +1277,11 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
           (cycles-~* π as x rel sup (bs⊆as (here refl))
           (∉-concat⁺ rs x∉rs)) sup (bs⊆as ∘ there)
 
+    ~*-dom : ∀ π {ρs} → π ~* ρs → (∀ {a} → a ∈ concat ρs → a ∈-dom π)
+    ~*-dom π {ρs@((a ∷ ρ) ∷ ρs')} (∷* rel x x₁) a∈ρs with ∈-concat⁻′ setoid ρs a∈ρs
+    ... | ρ' , a∈ρ' , here equ = ~⇒in-dom π (proj₁ x) (∈-resp-≋ setoid equ a∈ρ')
+    ... | ρ' , a∈ρ' , there ρ'∈ρs = ~*-dom π rel (∈-concat⁺′ setoid a∈ρ' ρ'∈ρs)
+
     ~*-out : ∀ π {ρs} → π ~* ρs → (∀ {a} → a ∈ concat ρs → f π a ≈ f ⟦ cycles-to-FP ρs ⟧ a)
     ~*-out π {ρs'@((b ∷ ρ) ∷ ρs)} (∷* rels rel disj) {a} a∈ρs with ∈-concat⁻′ setoid ρs' a∈ρs
     ... | ρ' , a∈ρ' , here ρ'=bρ =
@@ -1300,9 +1357,6 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       ∈-dom⇒∈ρs : (_∈-dom ⟦ p ⟧) ⊆ (_∈ concat ρs)
       ∈-dom⇒∈ρs {y} y∈dom = ∈-atoms-to-cycles ⟦ p ⟧ (length ats) ats [] y (proj₂ (fp-supp p) y∈dom)
 
-      -- ∈-ρs⇒∈dom : (_∈ concat ρs) ⊆ (_∈-dom ⟦ p ⟧)
-      -- ∈-ρs⇒∈dom {a} a∈ρs = {!toFP-support ρs a!}
-
       norm-corr : ⟦ p ⟧ ≈ₚ ⟦ norm p ⟧
       norm-corr x with x ∈? concat ρs
       ... | yes x∈at = ~*-out ⟦ p ⟧ rel x∈at
@@ -1310,8 +1364,11 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
           (¬∈-dom⇒∉-dom {⟦ p ⟧} (contraposition ∈-dom⇒∈ρs x∉at))
           (~*-out-fresh ⟦ p ⟧ rel x∉at)
 
-      postulate
-        norm-atoms : ∀ a → a ∈ atoms (norm p) → a ∈-dom ⟦ p ⟧
+      atoms-norm : ∀ a → a ∈ atoms (norm p) → a ∈ concat ρs
+      atoms-norm a a∈ = atoms-cycles-to-FP ρs a a∈
+      norm-atoms : ∀ a → a ∈ atoms (norm p) → a ∈-dom ⟦ p ⟧
+      norm-atoms a a∈at = ~*-dom ⟦ p ⟧ rel a∈ρs
+        where a∈ρs = atoms-norm a a∈at
 
     module Thm' (p : Perm) {ats : List A}
       (is-sup : ats is-supp-of p)
@@ -1329,3 +1386,4 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
       ... | no x∉at = trans
           (¬∈-dom⇒∉-dom { p} (contraposition ∈-dom⇒∈ρs x∉at))
           (~*-out-fresh p rel x∉at)
+

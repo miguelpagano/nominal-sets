@@ -107,15 +107,3 @@ module _ (S : Setoid c ℓ) {P : Pred (Carrier S) p}
 
   ∉-filter⁻ : ∀ {v} {xs} → v ∈ xs → v ∉ filter P? xs → ¬ (P v)
   ∉-filter⁻ {v} {xs = x ∷ xs} v∈xs v∉f[x∷xs] pv = v∉f[x∷xs] (∈-filter⁺ S P? resp v∈xs pv)
-
-module _ (S : Setoid c ℓ) where
-  open Setoid S renaming (Carrier to A)
-  open import Data.List.Relation.Binary.Subset.Setoid S
-  open import Function
-
-  []-setoid : Setoid c (c ⊔ ℓ)
-  []-setoid = record {
-      Carrier = List A
-    ; _≈_ = λ as bs → as ⊆ bs × bs ⊆ as
-    ; isEquivalence = record { refl = id , id ; sym = swap ; trans = λ x x₁ → (proj₁ x₁ ∘ proj₁ x) , ((proj₂ x ∘ proj₂ x₁)) }
-    }
