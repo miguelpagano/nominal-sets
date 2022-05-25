@@ -349,6 +349,7 @@ module _ (A : GSet G {ℓ₁ = ℓ₁} {ℓ₂ = ℓ₂}) (B : GSet G {ℓ₁ = 
     ′-cong = Group.⁻¹-cong G
 
   open import Setoid-Extra
+  open ExtEq
   GSet-⇒ : GSet G {ℓ₁ = ℓ₁ ⊔ ℓ₂ ⊔ ℓ₃ ⊔ ℓ₄} {ℓ₂ = ℓ₁ ⊔ ℓ₄}
   set GSet-⇒ = set A ⇒ₛ set B
   f (f (action GSet-⇒) (g , F)) a = g ∙B.∙ₐ f F (g ′ ∙A.∙ₐ a)

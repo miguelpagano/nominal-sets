@@ -72,9 +72,10 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
       (π ∙ₐ x) ≈X (toPERM p ∙ₐ (toPERM q ∙ₐ x))
     comp-act π x p q eq = trans-X (congˡ {π} {toPERM (Comp p q)} x eq')
       (sym-X (compₐ (toPERM p) (toPERM q) x))
-      where eq' : proj₁ π ≈ₚ proj₁ (toPERM p ∘P toPERM q)
-            eq' x rewrite toPERM-eq p | toPERM-eq q = eq x
-            open Setoid set renaming (trans to trans-X;sym to sym-X)
+      where
+      open Setoid set renaming (trans to trans-X;sym to sym-X)
+      eq' : proj₁ π ≈ₚ proj₁ (toPERM p ∘P toPERM q)
+      eq' x rewrite toPERM-eq p | toPERM-eq q = eq x
 
 
   module Support {ℓx ℓx' : Level}
@@ -100,21 +101,6 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
     is-supp : Pred X (ℓ ⊔ ℓ' ⊔ ℓP ⊔ ℓx')
     is-supp x = (π : PERM) → (predicate P ⊆ _∉-dom proj₁ π) → π ∙ₐ x ≈X x
 
-    -- Alternatively, we can say that P supports x by using the computable
-    -- notion of not being an atom in the domain of the FinPerm.
-    private
-      is-supp' : Pred X (ℓ ⊔ ℓ' ⊔ ℓP ⊔ ℓx')
-      is-supp' x = (π : PERM) → (predicate P ⊆ (_∉ support (proj₁ (proj₂ π)))) →
-        π ∙ₐ x ≈X x
-
-    -- Both notions are equivalent.
-      imp : is-supp ⊆ is-supp'
-      imp pred π inv = pred π (λ {a} Pa → proj₂ (∉-PERM π)
-         (∉-support-∉ (proj₁ (proj₂ π)) (inv {a} Pa)))
-
-      imp' : is-supp' ⊆ is-supp
-      imp' pred Π@(π , p , _) inv = pred Π (λ {a} Pa → ∉-∉-atoms p (proj₁ (∉-PERM Π) ((inv {a} Pa))))
-
     -- Finally, the characterization in terms of swapping: P supports x if,
     -- for every a and b in the complement of P, the action of (SWAP a b) in x
     -- fixes it.
@@ -132,9 +118,9 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
         easy {c} c∈P = DecSetoid.reflexive A-setoid (transp-eq₃ c≉a c≉b)
          where
          c≉a : c ≉ a
-         c≉a c≈a = a∉P (predWellDef P c≈a c∈P)
+         c≉a c≈a = a∉P (resp-≈ P c≈a c∈P)
          c≉b : c ≉ b
-         c≉b c≈b = b∉P (predWellDef P c≈b c∈P)
+         c≉b c≈b = b∉P (resp-≈ P c≈b c∈P)
 
       -- and also we can prove that it is almost equivalent.
       is-supp₃ : Pred X (ℓ ⊔ ℓ' ⊔ ℓP ⊔ ℓx')

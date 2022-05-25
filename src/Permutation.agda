@@ -63,7 +63,8 @@ module Symmetry-Group (A-setoid : Setoid ℓ ℓ') where
 
   isEq = isEquivalence A-setoid
 
-  Perm = Inverse A-setoid A-setoid ; _≈A_ = Setoid._≈_ A-setoid
+  Perm = Inverse A-setoid A-setoid
+  _≈A_ = Setoid._≈_ A-setoid
 
 -- Two permutations are equal if they coincide in every atom.
   _≈ₚ_ : Rel Perm _
@@ -533,8 +534,8 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
     qx=py : (λ a → f ⟦ q ⟧ a ≈ f ⟦ p ⟧ a) Respects _≈_
     qx=py b=c qb=pb = trans (cong₁ ⟦ q ⟧ (sym b=c)) (trans qb=pb (cong₁ ⟦ p ⟧ b=c))
 
-  ≈ₛ⇒≈-sup : ∀ p q → q ⊆ₛ p → ∀ a → (a ∉ support p → a ∉ support q)
-  ≈ₛ⇒≈-sup p q rel a a∉p a∈q with ∈-filter⁻ setoid (_∈-dom? ⟦ q ⟧) (∈-dom-resp-≈ ⟦ q ⟧) {xs = atoms q} a∈q
+  ≈ₛ⇒≈-sup : ∀ {p q} → q ⊆ₛ p → (_∉ support p) ⊆ (_∉ support q)
+  ≈ₛ⇒≈-sup {p} {q} rel a∉p a∈q with ∈-filter⁻ setoid (_∈-dom? ⟦ q ⟧) (∈-dom-resp-≈ ⟦ q ⟧) {xs = atoms q} a∈q
   ... | a∈atq , qa≉a = contradiction a∉domp (≉-resp-≈₁ (sym qa=pa) qa≉a)
     where
     a∉domp = ∉-support-∉ p a∉p
@@ -543,7 +544,7 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
   ≈ₛ⇒≈ₚ : ∀ p q → p ≈ₛ q → ⟦ p ⟧ ≈ₚ ⟦ q ⟧
   ≈ₛ⇒≈ₚ p q (p<q , q<p) a with a ∈? support p
   ... | yes a∈p = ⊆ₛ-∈⁻ {p} {q} p<q a∈p
-  ... | no a∉p = trans (∉-support-∉ p a∉p) (sym (∉-support-∉ q (≈ₛ⇒≈-sup p q q<p a a∉p)))
+  ... | no a∉p = trans (∉-support-∉ p a∉p) (sym (∉-support-∉ q (≈ₛ⇒≈-sup {p} {q} q<p a∉p)))
 
   ≈ₚ⇒≈ₛ : ∀ p q → ⟦ p ⟧ ≈ₚ ⟦ q ⟧ → p ⊆ₛ q
   ≈ₚ⇒≈ₛ p q equ = eq (support p)
@@ -603,9 +604,6 @@ module Perm (A-setoid : DecSetoid ℓ ℓ') where
 
   toPERM-eq' : ∀ p → proj₁ (toPERM p) ≈ₚ ⟦ p ⟧
   toPERM-eq' p x rewrite toPERM-eq p = refl
-
-  toPERM-eq'' : ∀ (π : PERM) → proj₁ π ≈ₚ proj₁ (toPERM (proj₁ (proj₂ π)))
-  toPERM-eq'' π x rewrite toPERM-eq (proj₁ (proj₂ π)) = proj₂ (proj₂ π) x
 
   toPERM-eq-trans : ∀ (π : PERM) q → ⟦ proj₁ (proj₂ π) ⟧ ≈ₚ ⟦ q ⟧ → proj₁ π ≈ₚ proj₁ (toPERM q)
   toPERM-eq-trans π q eq x rewrite toPERM-eq q = trans (proj₂ (proj₂ π) x) (eq x)
