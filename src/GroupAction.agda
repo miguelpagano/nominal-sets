@@ -157,6 +157,10 @@ module G-Action (G : Group cℓ ℓ) where
       F : Func (set A) (set B)
       isEquivariant : IsEquivariant (action A) (action B) F
 
+    infix 10 _⟨$⟩_
+    _⟨$⟩_ : Carrier (set A) → Carrier (set B)
+    _⟨$⟩_ a = f F a
+
 variable
   G : Group cℓ ℓ
 open G-Action using (GSet; IsAction; Equivariant)
@@ -339,7 +343,7 @@ module _ (A : GSet G {ℓ₁ = ℓ₁} {ℓ₂ = ℓ₂}) where
     comp-action [] = PW.refl
     comp-action (x ∷ xs) = (sym (set A) (∙A.compₐ g' g x)) PW'.∷ (comp-action xs)
 
-module _ (A : GSet G {ℓ₁ = ℓ₁} {ℓ₂ = ℓ₂}) (B : GSet G {ℓ₁ = ℓ₃} {ℓ₄}) where
+module _ (G : Group cℓ ℓ) (A : GSet G {ℓ₁ = ℓ₁} {ℓ₂ = ℓ₂}) (B : GSet G {ℓ₁ = ℓ₃} {ℓ₄}) where
   private
     open module ∙A = GSet A
     open module ∙B = GSet B
@@ -349,34 +353,68 @@ module _ (A : GSet G {ℓ₁ = ℓ₁} {ℓ₂ = ℓ₂}) (B : GSet G {ℓ₁ = 
     ′-cong = Group.⁻¹-cong G
 
   open import Setoid-Extra
-  open ExtEq
-  GSet-⇒ : GSet G {ℓ₁ = ℓ₁ ⊔ ℓ₂ ⊔ ℓ₃ ⊔ ℓ₄} {ℓ₂ = ℓ₁ ⊔ ℓ₄}
-  set GSet-⇒ = set A ⇒ₛ set B
-  f (f (action GSet-⇒) (g , F)) a = g ∙B.∙ₐ f F (g ′ ∙A.∙ₐ a)
-  cong (f (action GSet-⇒) (g , F)) a≈a' = ∙B.congʳ g (cong F (∙A.congʳ (g ′) a≈a'))
-  cong (action GSet-⇒) {x = g , F} {g' , H} (g≈g' , F=H) a = begin
-    g ∙B.∙ₐ f F (g ′ ∙A.∙ₐ a)
-    ≈⟨ ∙B.congʳ g (F=H (g ′ ∙A.∙ₐ a)) ⟩
-    g ∙B.∙ₐ f H (g ′ ∙A.∙ₐ a)
-    ≈⟨ ∙B.congʳ g (cong H (∙A.congˡ a (′-cong g≈g'))) ⟩
-    g ∙B.∙ₐ f H (g' ′ ∙A.∙ₐ a)
-    ≈⟨ ∙B.congˡ (f H (g' ′ ∙A.∙ₐ a)) g≈g' ⟩
-    g' ∙B.∙ₐ f H (g' ′ ∙A.∙ₐ a) ∎
-  idₐ (isAction GSet-⇒) H a = begin
-    ε ∙B.∙ₐ f H (ε ′ ∙A.∙ₐ a)
-    ≈⟨ ∙B.congʳ ε (cong H (∙A.id⁻¹ a)) ⟩
-    ε ∙B.∙ₐ f H a
-    ≈⟨ ∙B.idₐ (f H a) ⟩
-    (f H a) ∎
-  compₐ (isAction GSet-⇒) g' g H a = begin
-    (g' ∙B.∙ₐ (g ∙B.∙ₐ f H (g ′ ∙A.∙ₐ (g' ′ ∙A.∙ₐ a))))
-    ≈⟨ ∙B.compₐ g' g (f H (g ′ ∙A.∙ₐ (g' ′ ∙A.∙ₐ a))) ⟩
-    (g' ∙ g) ∙B.∙ₐ (f H (g ′ ∙A.∙ₐ (g' ′ ∙A.∙ₐ a)))
-    ≈⟨ ∙B.congʳ (g' ∙ g) (cong H (∙A.compₐ (g ′) (g' ′) a)) ⟩
-    (g' ∙ g) ∙B.∙ₐ f H (((g ′) ∙ (g' ′)) ∙A.∙ₐ a)
-    ≈⟨ ∙B.congʳ (g' ∙ g) (cong H (∙A.congˡ a (sym (Group.setoid G) (⁻¹-anti-homo-∙ g' g)))) ⟩
-    (g' ∙ g) ∙B.∙ₐ f H ((g' ∙ g) ′ ∙A.∙ₐ a) ∎
+  open ExtEq (set A) (set B)
+  open IsEquivalence
 
+  _≈→ₑ_ : Rel (Equivariant G A B) (ℓ₁ ⊔ ℓ₄)
+  G ≈→ₑ H = F G ≈→ F H
+
+  isEquiv≈→ₑ : IsEquivalence (_≈→ₑ_)
+  refl isEquiv≈→ₑ {H} = refl Equiv≈→ {F H}
+  sym isEquiv≈→ₑ {G} {H} G=H = sym Equiv≈→ {F G} {F H} G=H
+  trans isEquiv≈→ₑ {G} {H} {K} G=H H=K = trans Equiv≈→ {F G} {F H} {F K} G=H H=K
+
+  _⇒ₑ_ : Setoid _ (ℓ₁ ⊔ ℓ₄)
+  Carrier _⇒ₑ_ = Equivariant G A B
+  _≈_ _⇒ₑ_ = _≈→ₑ_
+  isEquivalence _⇒ₑ_ = isEquiv≈→ₑ
+
+  _$∙_ : Group.Carrier G × Equivariant G A B → Carrier (set A) → Carrier (set B)
+  (g , H) $∙ a = g ∙B.∙ₐ H ⟨$⟩ (g ′ ∙A.∙ₐ a)
+
+  _≈B_ = _≈_ (set B)
+  prop : ∀ g H a → ((g , H) $∙ a) ≈B (H ⟨$⟩ a)
+  prop g H a = begin
+    g ∙B.∙ₐ H ⟨$⟩ (g ′ ∙A.∙ₐ a)
+    ≈⟨ ∙B.congʳ g (isEquivariant H a (g ′)) ⟩
+    g ∙B.∙ₐ (g ′ ∙B.∙ₐ (H ⟨$⟩ a))
+    ≈⟨ ∙B.act-inverseʳ g (H ⟨$⟩ a) ⟩
+    H ⟨$⟩ a ∎
+
+
+  act : Group.Carrier G × Equivariant G A B → Equivariant G A B
+  f (F (act (g , H))) a = (g , H) $∙ a
+  cong (F (act (g , H))) x=y =
+    ∙B.congʳ g (cong (F H) (∙A.congʳ (g ′) x=y))
+  isEquivariant (act (g₁ , H)) a g₂ = begin
+     (g₁ , H) $∙ (g₂ ∙A.∙ₐ a)
+    ≈⟨ prop g₁ H (g₂ ∙A.∙ₐ a) ⟩
+    f (F H) (g₂ ∙A.∙ₐ a)
+    ≈⟨ isEquivariant H a g₂ ⟩
+    g₂ ∙B.∙ₐ (f (F H) a)
+    ≈⟨ ∙B.congʳ g₂ (sym (set B) (prop g₁ H a)) ⟩
+    g₂ ∙B.∙ₐ (g₁ , H) $∙ a ∎
+
+  GSet-⇒ : GSet G {ℓ₁ = (suc cℓ ⊔ suc ℓ₁ ⊔ suc ℓ₂ ⊔ suc ℓ₃ ⊔ suc ℓ₄) } {ℓ₂ = (ℓ₁ ⊔ ℓ₄)}
+  set GSet-⇒ = _⇒ₑ_
+  f (action GSet-⇒) gH = act gH
+  cong (action GSet-⇒) {g , H} {g' , H'} (g=g' , H=H') a = begin
+    (g , H) $∙ a
+    ≈⟨ prop g H a ⟩
+    f (F H) a
+    ≈⟨ H=H' a ⟩
+    f (F H') a
+    ≈⟨ sym (set B) (prop g' H' a) ⟩
+    ((g' , H') $∙ a) ∎
+  idₐ (isAction GSet-⇒) H a = prop ε H a
+  compₐ (isAction GSet-⇒) g' g H a = begin
+    ((g' , act (g , H)) $∙ a)
+    ≈⟨ prop g' (act (g , H)) a ⟩
+    f (F (act (g , H))) a
+    ≈⟨ prop g H a  ⟩
+    f (F H) a
+    ≈⟨ sym (set B) (prop (g' ∙ g) H a) ⟩
+    (g' ∙ g , H) $∙ a ∎
 
 module _ (A : GSet G {ℓ₁ = ℓ₁} {ℓ₂ = ℓ₂}) {ℓs ℓp} (C : Container ℓs ℓp) where
   private

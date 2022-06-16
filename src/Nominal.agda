@@ -265,20 +265,20 @@ module Support (A-setoid : DecSetoid ℓ ℓ') where
         open module BSetoid = Setoid (set B)
         _∙A_ = _∙ₐ_ A
         _∙B_ = _∙ₐ_ B
-        _∙→_ = _∙ₐ_ (GSet-⇒ A B)
-      →-nominal : Nominal (GSet-⇒ A B)
+        _∙→_ = _∙ₐ_ (GSet-⇒ 𝔸 A B)
+        open Equivariant
+
+      →-nominal : Nominal (GSet-⇒ 𝔸 A B)
       sup (→-nominal) G = ⊥ₛ , (⊥-finite , λ _ _ → ab∙G[-]=G[-] )
         where
-        postulate
-          G-equiv : IsEquivariant (action A) (action B) G
-        ab∙G[-]=G[-] : ∀ {a b : A-carrier} x → f ((SWAP a b) ∙→ G) x  BSetoid.≈ f G x
+        ab∙G[-]=G[-] : ∀ {a b : A-carrier} x → f (F ((SWAP a b) ∙→ G)) x  BSetoid.≈ f (F G) x
         ab∙G[-]=G[-] {a} {b} x = begin
-          f (ab ∙→ G) x
+          f (F (ab ∙→ G)) x
           ≈⟨ BSetoid.refl  ⟩
-          (ab ∙B f G (ab ′ ∙A x))
-          ≈⟨ congʳ B ab (G-equiv x (ab ′)) ⟩
-          (ab ∙B (ab ′ ∙B (f G x)))
-          ≈⟨ act-inverseʳ B ab (f G x)  ⟩
-            f G x
+          (ab ∙B f (F G) (ab ′ ∙A x))
+          ≈⟨ congʳ B ab (isEquivariant G x (ab ′)) ⟩
+          (ab ∙B (ab ′ ∙B (f (F G) x)))
+          ≈⟨ act-inverseʳ B ab (f (F G) x)  ⟩
+            f (F G) x
           ∎
           where ab = SWAP a b
